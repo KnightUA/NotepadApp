@@ -1,11 +1,11 @@
-package com.knightua.notepadapp.components.ui
+package com.knightua.notepadapp.mvp.views.activity
 
 import android.os.Bundle
 import com.knightua.basemodule.abstracts.view.BaseCompatActivity
 import com.knightua.notepadapp.R
-import com.knightua.notepadapp.components.backstage.MainActivityContract
-import com.knightua.notepadapp.components.backstage.MainActivityPresenter
-import com.knightua.notepadapp.config.di.NotepadMvpApp
+import com.knightua.notepadapp.di.application.NotepadMvpApp
+import com.knightua.notepadapp.mvp.contracts.MainActivityContract
+import com.knightua.notepadapp.mvp.presenters.MainActivityPresenter
 import javax.inject.Inject
 
 class MainActivity : BaseCompatActivity(), MainActivityContract.View {

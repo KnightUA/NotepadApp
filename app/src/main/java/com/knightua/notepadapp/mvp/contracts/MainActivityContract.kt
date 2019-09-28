@@ -1,4 +1,4 @@
-package com.knightua.notepadapp.components.backstage
+package com.knightua.notepadapp.mvp.contracts
 
 import com.knightua.basemodule.abstracts.presenter.BaseMvpPresenter
 import com.knightua.basemodule.abstracts.view.BaseView
