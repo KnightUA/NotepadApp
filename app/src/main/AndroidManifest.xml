@@ -12,8 +12,8 @@
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning"
         android:fullBackupContent="true"
-        android:name=".di.application.NotepadMvpApp">
-        <activity android:name="com.knightua.notepadapp.mvp.views.activity.MainActivity">
+        android:name=".di.application.NotepadApp">
+        <activity android:name=".mvp.views.activity.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

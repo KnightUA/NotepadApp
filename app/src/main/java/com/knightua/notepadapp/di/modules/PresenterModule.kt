@@ -6,10 +6,10 @@ import dagger.Provides
 import javax.inject.Singleton
 
 @Module
-class MainActivityModule {
+class PresenterModule {
 
     @Singleton
     @Provides
-    fun providesPresenter(): MainActivityPresenter =
-        MainActivityPresenter()
+    fun provideMainActivityPresenter(): MainActivityPresenter = MainActivityPresenter()
+
 }
