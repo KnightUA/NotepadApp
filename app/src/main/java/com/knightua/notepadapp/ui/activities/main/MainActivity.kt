@@ -20,9 +20,7 @@ class MainActivity : BaseCompatActivity() {
     fun init() {
         setContentView(R.layout.activity_main)
 
-        DaggerMainActivityComponent.builder()
-            .mainActivityModule(MainActivityModule())
-            .build().inject(this)
+        DaggerMainActivityComponent.create().inject(this)
 
         presenter.attach(this)
     }

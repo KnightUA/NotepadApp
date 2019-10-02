@@ -1,7 +1,7 @@
 package com.knightua.notepadapp.room.module
 
-import android.app.Application
 import androidx.room.Room
+import com.knightua.notepadapp.di.application.NotepadApp
 import com.knightua.notepadapp.network.WebServer
 import com.knightua.notepadapp.reposotories.NoteRepository
 import com.knightua.notepadapp.room.dao.NoteDao
@@ -12,10 +12,14 @@ import javax.inject.Singleton
 
 
 @Module
-class RoomModule(mApplication: Application) {
+class RoomModule {
 
     private var notepadAppDatabase: NotepadAppDatabase =
-        Room.databaseBuilder(mApplication, NotepadAppDatabase::class.java, "notepad-db").build()
+        Room.databaseBuilder(
+            NotepadApp.applicationContext,
+            NotepadAppDatabase::class.java,
+            "notepad-db"
+        ).build()
 
     private var webServer = WebServer()
 
@@ -30,6 +34,6 @@ class RoomModule(mApplication: Application) {
 
     @Singleton
     @Provides
-    fun providesNoteRepository(noteDao: NoteDao): NoteRepository =
+    fun providesNoteRepository(): NoteRepository =
         NoteRepository(notepadAppDatabase.noteDao(), webServer)
 }

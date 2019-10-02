@@ -3,7 +3,6 @@ package com.knightua.notepadapp.di.application
 import android.app.Application
 import com.knightua.notepadapp.di.component.AppDiComponent
 import com.knightua.notepadapp.di.component.DaggerAppDiComponent
-import com.knightua.notepadapp.room.module.RoomModule
 import timber.log.Timber
 
 object NotepadApp : Application() {
@@ -22,8 +21,6 @@ object NotepadApp : Application() {
     }
 
     private fun initDagger() {
-        injector = DaggerAppDiComponent.builder()
-            .roomModule(RoomModule(this as Application))
-            .build()
+        injector = DaggerAppDiComponent.create()
     }
 }
