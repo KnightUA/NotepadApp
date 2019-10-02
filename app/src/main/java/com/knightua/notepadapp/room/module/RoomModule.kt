@@ -1,4 +1,4 @@
-package com.knightua.notepadapp.di.modules
+package com.knightua.notepadapp.room.module
 
 import android.app.Application
 import androidx.room.Room
