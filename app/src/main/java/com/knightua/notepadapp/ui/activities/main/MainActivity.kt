@@ -4,9 +4,6 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import com.knightua.basemodule.abstracts.view.BaseCompatActivity
 import com.knightua.notepadapp.R
-import com.knightua.notepadapp.di.application.NotepadApp
-import com.knightua.notepadapp.mvp.contracts.MainActivityContract
-import com.knightua.notepadapp.reposotories.NoteRepository
 import javax.inject.Inject
 
 class MainActivity : BaseCompatActivity() {
