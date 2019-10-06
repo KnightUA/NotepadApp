@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">NotepadApp</string>
+
+    <string name="error_no_connection">No connection to Internet</string>
+    <string name="error_no_data">No data for loading</string>
 </resources>

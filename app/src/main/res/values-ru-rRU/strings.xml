@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NotepadApp</string>
+    <string name="error_no_connection">Отсутствует соединение с Интернетом</string>
+    <string name="error_no_data">Отсутствуют данные для загрузки</string>
+</resources>

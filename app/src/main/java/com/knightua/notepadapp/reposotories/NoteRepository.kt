@@ -9,7 +9,6 @@ import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
-import java.util.concurrent.TimeUnit
 
 class NoteRepository(private val noteDao: NoteDao, private val webServer: WebServer) {
 
@@ -37,7 +36,6 @@ class NoteRepository(private val noteDao: NoteDao, private val webServer: WebSer
         return webServer.getAllNotes()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .delay(3, TimeUnit.SECONDS)
             .doOnNext {
                 Timber.d("Dispatching ${it.size} notes from Api...")
                 insertAllInDatabase(it)

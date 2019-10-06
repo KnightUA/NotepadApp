@@ -9,6 +9,10 @@ class WebServer {
     fun getAllNotes(): Observable<List<Note>> {
         return Observable.create { emitter ->
             val notes = getRandomDataSituation()
+
+            //Simulate getting data
+            Thread.sleep(5000L)
+
             if (notes.isEmpty())
                 emitter.onError(Throwable("Data didn't receive from Api..."))
             else
