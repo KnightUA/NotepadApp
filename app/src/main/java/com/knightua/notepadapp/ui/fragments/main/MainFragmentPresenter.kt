@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.IntentFilter
 import com.knightua.basemodule.abstracts.presenter.BasePresenter
 import com.knightua.notepadapp.R
+import com.knightua.notepadapp.adapters.NoteRvAdapter
 import com.knightua.notepadapp.di.application.NotepadApp
 import com.knightua.notepadapp.receivers.NetworkReceiver
 import com.knightua.notepadapp.room.entity.Note
@@ -71,7 +72,8 @@ class MainFragmentPresenter : BasePresenter<MainFragment>(),
     }
 
     private fun handleData(notes: List<Note>) {
-        mCurrentState.showError("Success")
+        view?.mBinding?.recyclerViewNotes?.adapter = NoteRvAdapter(notes)
+        view?.mBinding?.recyclerViewNotes?.adapter?.notifyDataSetChanged()
     }
 
     private fun handleError(throwable: Throwable) {

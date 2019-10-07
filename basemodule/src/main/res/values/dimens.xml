@@ -162,4 +162,22 @@
     <dimen name="text_size_sp_64">64sp</dimen>
     <dimen name="text_size_sp_68">68sp</dimen>
     <dimen name="text_size_sp_72">72sp</dimen>
+
+    <!--    Radius Dimensions-->
+    <dimen name="radius_dp_0">0dp</dimen>
+    <dimen name="radius_dp_1">1dp</dimen>
+    <dimen name="radius_dp_2">2dp</dimen>
+    <dimen name="radius_dp_3">3dp</dimen>
+    <dimen name="radius_dp_4">4dp</dimen>
+    <dimen name="radius_dp_5">5dp</dimen>
+    <dimen name="radius_dp_6">6dp</dimen>
+    <dimen name="radius_dp_8">8dp</dimen>
+    <dimen name="radius_dp_10">10dp</dimen>
+    <dimen name="radius_dp_12">12dp</dimen>
+    <dimen name="radius_dp_14">14dp</dimen>
+    <dimen name="radius_dp_16">16dp</dimen>
+    <dimen name="radius_dp_18">18dp</dimen>
+    <dimen name="radius_dp_20">20dp</dimen>
+    <dimen name="radius_dp_22">22dp</dimen>
+    <dimen name="radius_dp_24">24dp</dimen>
 </resources>
