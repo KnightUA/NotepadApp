@@ -1,7 +1,10 @@
 package com.knightua.notepadapp.ui.fragments.main
 
+import SwipeToDeleteCallback
 import android.annotation.SuppressLint
 import android.content.IntentFilter
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.RecyclerView
 import com.knightua.basemodule.abstracts.presenter.BasePresenter
 import com.knightua.notepadapp.R
 import com.knightua.notepadapp.adapters.NoteRvAdapter
@@ -74,6 +77,15 @@ class MainFragmentPresenter : BasePresenter<MainFragment>(),
     private fun handleData(notes: List<Note>) {
         view?.mBinding?.recyclerViewNotes?.adapter = NoteRvAdapter(notes)
         view?.mBinding?.recyclerViewNotes?.adapter?.notifyDataSetChanged()
+
+        val swipeHandler = object : SwipeToDeleteCallback(view?.context!!) {
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                (view?.mBinding?.recyclerViewNotes?.adapter as NoteRvAdapter).deleteAt(viewHolder.adapterPosition)
+            }
+        }
+
+        val itemTouchHelper = ItemTouchHelper(swipeHandler)
+        itemTouchHelper.attachToRecyclerView(view?.mBinding?.recyclerViewNotes)
     }
 
     private fun handleError(throwable: Throwable) {
