@@ -61,9 +61,14 @@ class MainFragmentPresenter : BasePresenter<MainFragment>(),
         }
     }
 
+    fun addDefaultNote() {
+        NotepadApp.injector.getNoteRepository()
+            .insertInDatabase(Note("Title", "Description", System.currentTimeMillis()))
+    }
+
     @SuppressLint("CheckResult")
     fun loadData() {
-        NotepadApp.injector.getNoteRepository().getAllFromApi()
+        NotepadApp.injector.getNoteRepository().getAll()
             .observeOn(AndroidSchedulers.mainThread())
             .doOnTerminate {
                 mCurrentState.hideProgress()
