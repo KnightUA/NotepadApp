@@ -25,9 +25,9 @@ class WebServer {
     private fun getDefaultNotes(): List<Note> {
         val notes: ArrayList<Note> = arrayListOf()
 
-        notes.add(Note(1, "John", "My name is John", 10))
-        notes.add(Note(2, "Martin", "My name is Martin", 100))
-        notes.add(Note(3, "Thor", "My name is Thor", 1000))
+        notes.add(Note("John", "My name is John", 10))
+        notes.add(Note("Martin", "My name is Martin", 100))
+        notes.add(Note("Thor", "My name is Thor", 1000))
 
         return notes.toList()
     }

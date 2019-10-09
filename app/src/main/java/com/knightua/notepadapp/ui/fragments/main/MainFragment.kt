@@ -11,7 +11,7 @@ import com.knightua.notepadapp.R
 import com.knightua.notepadapp.databinding.FragmentMainBinding
 import javax.inject.Inject
 
-class MainFragment : BaseFragment() {
+class MainFragment : BaseFragment(), View.OnClickListener {
 
     lateinit var mBinding: FragmentMainBinding
 
@@ -35,6 +35,15 @@ class MainFragment : BaseFragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         presenter.unregisterReceivers()
+    }
+
+    override fun onClick(p0: View?) {
+
+        when (p0?.id) {
+            R.id.floating_action_button_add_note -> {
+                presenter.addDefaultNote()
+            }
+        }
     }
 
     @SuppressLint("CheckResult")
