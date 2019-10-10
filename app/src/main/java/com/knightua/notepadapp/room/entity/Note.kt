@@ -11,5 +11,5 @@ data class Note(
     @ColumnInfo(name = "date_of_creation") val dateOfCreation: Long?
 ) {
     @PrimaryKey(autoGenerate = true)
-    var id: Int = 0
+    var id: Long = 0
 }

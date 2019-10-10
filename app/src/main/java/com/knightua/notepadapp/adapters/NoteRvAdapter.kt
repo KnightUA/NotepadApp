@@ -13,12 +13,19 @@ import java.lang.ref.WeakReference
 import java.util.*
 
 
-class NoteRvAdapter(notesList: List<Note>) : RecyclerView.Adapter<NoteRvAdapter.NoteViewHolder>() {
+class NoteRvAdapter() :
+    RecyclerView.Adapter<NoteRvAdapter.NoteViewHolder>() {
 
-    private var mNoteList: ArrayList<Note> = notesList as ArrayList<Note>
+    private var mNoteList: ArrayList<Note> = ArrayList()
+    private var mOnItemClickListener: OnItemClickListener? = null
     private var mRecentlyDeletedItem: Note? = null
     private var mRecentlyDeletedItemPosition: Int? = null
     private var mView: View? = null
+
+    constructor(notesList: List<Note>, onItemClickListener: OnItemClickListener) : this() {
+        mNoteList = notesList as ArrayList<Note>
+        mOnItemClickListener = onItemClickListener
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NoteViewHolder {
         val inflater = WeakReference(LayoutInflater.from(parent.context)).get()
@@ -34,7 +41,14 @@ class NoteRvAdapter(notesList: List<Note>) : RecyclerView.Adapter<NoteRvAdapter.
     }
 
     override fun onBindViewHolder(holder: NoteViewHolder, position: Int) {
-        holder.setNote(mNoteList[position])
+        holder.setNote(note = mNoteList[position])
+        mOnItemClickListener?.let {
+            holder.bind(mNoteList[position], it)
+        }
+    }
+
+    fun getItemAt(position: Int): Note {
+        return mNoteList.get(position)
     }
 
     fun deleteAt(position: Int) {
@@ -43,6 +57,16 @@ class NoteRvAdapter(notesList: List<Note>) : RecyclerView.Adapter<NoteRvAdapter.
         mNoteList.removeAt(position)
         notifyItemRemoved(position)
         showUndoSnackbar()
+    }
+
+    fun add(note: Note) {
+        mNoteList.add(note)
+        notifyItemInserted(mNoteList.size - 1)
+    }
+
+    fun addAll(notes: List<Note>) {
+        mNoteList.addAll(notes)
+        notifyDataSetChanged()
     }
 
     private fun showUndoSnackbar() {
@@ -73,5 +97,15 @@ class NoteRvAdapter(notesList: List<Note>) : RecyclerView.Adapter<NoteRvAdapter.
             mBinding.textViewDatetime.text =
                 android.text.format.DateFormat.format("dd-MM-yyyy", Date(note.dateOfCreation!!))
         }
+
+        fun bind(note: Note, onItemClickListener: OnItemClickListener) {
+            itemView.setOnClickListener {
+                onItemClickListener.onItemClick(note)
+            }
+        }
+    }
+
+    interface OnItemClickListener {
+        fun onItemClick(item: Note)
     }
 }

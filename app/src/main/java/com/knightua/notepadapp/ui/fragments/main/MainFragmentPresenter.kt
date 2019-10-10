@@ -3,6 +3,7 @@ package com.knightua.notepadapp.ui.fragments.main
 import SwipeToDeleteCallback
 import android.annotation.SuppressLint
 import android.content.IntentFilter
+import android.widget.Toast
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.knightua.basemodule.abstracts.presenter.BasePresenter
@@ -22,17 +23,30 @@ class MainFragmentPresenter : BasePresenter<MainFragment>(),
 
     private lateinit var mNetworkReceiver: NetworkReceiver
     private lateinit var mCurrentState: BaseMainState
-
-    fun initState() {
-        mCurrentState = if (isFirstStart()) {
-            UnloadedDataMainState(view!!)
-        } else {
-            NormalMainState(view!!)
+    private val onItemNoteClickListener: NoteRvAdapter.OnItemClickListener =
+        object : NoteRvAdapter.OnItemClickListener {
+            override fun onItemClick(item: Note) {
+                Toast.makeText(
+                    view?.context,
+                    String.format("Clicked on %s", item.title),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
-    }
 
-    private fun isFirstStart(): Boolean {
-        return true
+    @SuppressLint("CheckResult")
+    fun initState() {
+        NotepadApp.injector.getNoteRepository().getAllFromDatabase()
+            .subscribe {
+                if (it.isNotEmpty()) {
+                    mCurrentState = NormalMainState(view!!)
+                    initAdapter(it)
+                } else {
+                    //TODO NOT Working at first time
+                    mCurrentState = UnloadedDataMainState(view!!)
+                }
+                registerReceivers()
+            }
     }
 
     private fun initNetworkReceiver() {
@@ -43,6 +57,7 @@ class MainFragmentPresenter : BasePresenter<MainFragment>(),
     }
 
     fun registerReceivers() {
+        Timber.i("registerReceivers")
         initNetworkReceiver()
     }
 
@@ -62,13 +77,15 @@ class MainFragmentPresenter : BasePresenter<MainFragment>(),
     }
 
     fun addDefaultNote() {
+        val defaultNote = Note("Title", "Description", System.currentTimeMillis())
         NotepadApp.injector.getNoteRepository()
-            .insertInDatabase(Note("Title", "Description", System.currentTimeMillis()))
+            .insertInDatabase(defaultNote)
+        (view?.mBinding?.recyclerViewNotes?.adapter as NoteRvAdapter).add(defaultNote)
     }
 
     @SuppressLint("CheckResult")
     fun loadData() {
-        NotepadApp.injector.getNoteRepository().getAll()
+        NotepadApp.injector.getNoteRepository().getAllFromApi()
             .observeOn(AndroidSchedulers.mainThread())
             .doOnTerminate {
                 mCurrentState.hideProgress()
@@ -80,21 +97,35 @@ class MainFragmentPresenter : BasePresenter<MainFragment>(),
     }
 
     private fun handleData(notes: List<Note>) {
-        view?.mBinding?.recyclerViewNotes?.adapter = NoteRvAdapter(notes)
+        if (mCurrentState is UnloadedDataMainState)
+            initAdapter(notes)
+        else
+            (view?.mBinding?.recyclerViewNotes?.adapter as NoteRvAdapter).addAll(notes)
         view?.mBinding?.recyclerViewNotes?.adapter?.notifyDataSetChanged()
+    }
+
+    private fun handleError(throwable: Throwable) {
+        Timber.e(throwable)
+        mCurrentState.showError(R.string.error_no_data)
+    }
+
+    private fun initAdapter(notes: List<Note>) {
+        Timber.i("initAdapter")
+
+        view?.mBinding?.recyclerViewNotes?.adapter = NoteRvAdapter(notes, onItemNoteClickListener)
 
         val swipeHandler = object : SwipeToDeleteCallback(view?.context!!) {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                NotepadApp.injector.getNoteRepository().deleteFromDatabase(
+                    (view?.mBinding?.recyclerViewNotes?.adapter as NoteRvAdapter).getItemAt(
+                        viewHolder.adapterPosition
+                    ).id
+                )
                 (view?.mBinding?.recyclerViewNotes?.adapter as NoteRvAdapter).deleteAt(viewHolder.adapterPosition)
             }
         }
 
         val itemTouchHelper = ItemTouchHelper(swipeHandler)
         itemTouchHelper.attachToRecyclerView(view?.mBinding?.recyclerViewNotes)
-    }
-
-    private fun handleError(throwable: Throwable) {
-        Timber.e(throwable)
-        mCurrentState.showError(R.string.error_no_data)
     }
 }

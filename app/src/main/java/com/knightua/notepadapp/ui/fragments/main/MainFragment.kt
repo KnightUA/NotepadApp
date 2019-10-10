@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import com.knightua.basemodule.abstracts.view.BaseFragment
 import com.knightua.notepadapp.R
+import com.knightua.notepadapp.adapters.NoteRvAdapter
 import com.knightua.notepadapp.databinding.FragmentMainBinding
 import javax.inject.Inject
 
@@ -50,8 +51,9 @@ class MainFragment : BaseFragment(), View.OnClickListener {
     fun init() {
         DaggerMainFragmentComponent.create().inject(this)
         presenter.attach(this)
-        presenter.registerReceivers()
+        mBinding.recyclerViewNotes.adapter = NoteRvAdapter()
         presenter.initState()
+        mBinding.floatingActionButtonAddNote.setOnClickListener(this)
     }
 
     companion object {
