@@ -6,4 +6,6 @@ interface BaseMvpPresenter<V : BaseView> {
     var isAttached: Boolean
     fun attach(view: V)
     fun detach()
+    fun getView(): V?
+    fun destroyPresenter()
 }

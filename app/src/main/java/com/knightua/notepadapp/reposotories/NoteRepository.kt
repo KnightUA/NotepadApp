@@ -52,6 +52,16 @@ class NoteRepository(private val noteDao: NoteDao, private val webServer: WebSer
             }
     }
 
+    fun getCount(): Observable<Int> {
+        return noteDao.getCount()
+            .toObservable()
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .doOnNext {
+                Timber.d("Count of notes is %d", it)
+            }
+    }
+
     @SuppressLint("CheckResult")
     fun insertAllInDatabase(notes: List<Note>) {
         Single.fromCallable { noteDao.insertAll(notes) }

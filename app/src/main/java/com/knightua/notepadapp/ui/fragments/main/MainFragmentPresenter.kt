@@ -2,58 +2,102 @@ package com.knightua.notepadapp.ui.fragments.main
 
 import android.annotation.SuppressLint
 import android.content.IntentFilter
+import com.jakewharton.rxrelay2.BehaviorRelay
 import com.knightua.basemodule.abstracts.presenter.BasePresenter
-import com.knightua.notepadapp.R
 import com.knightua.notepadapp.di.application.NotepadApp
 import com.knightua.notepadapp.receivers.NetworkReceiver
 import com.knightua.notepadapp.room.entity.Note
-import com.knightua.notepadapp.states.main.BaseMainState
-import com.knightua.notepadapp.states.main.NormalMainState
-import com.knightua.notepadapp.states.main.UnloadedDataMainState
+import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import timber.log.Timber
+import java.util.concurrent.TimeUnit
 
-class MainFragmentPresenter : BasePresenter<MainFragment>(),
+class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     NetworkReceiver.NetworkReceiverListener {
 
-    private lateinit var mNetworkReceiver: NetworkReceiver
-    private lateinit var mCurrentState: BaseMainState
-
-    fun initState() {
-        mCurrentState = if (isFirstStart()) {
-            UnloadedDataMainState(view!!)
-        } else {
-            NormalMainState(view!!)
-        }
+    companion object {
+        private const val STATE_EMPTY_NOTES_IN_DATABASE_LOADING = 1
+        private const val STATE_LOADING = 2
+        private const val STATE_UNRECEIVED_AND_EMPTY_DATA = 3
+        private const val STATE_EMPTY_PLACEHOLDER = 4
+        private const val STATE_EMPTY_SCREEN = 5
     }
 
-    private fun isFirstStart(): Boolean {
-        return true
+    private val stateRelay = BehaviorRelay.createDefault(STATE_EMPTY_SCREEN)
+    private lateinit var mNetworkReceiver: NetworkReceiver
+
+    init {
+        initState()
+    }
+
+    override fun attach(view: MainFragmentView) {
+        super.attach(view)
+        registerReceivers()
+        subscribeState()
+    }
+
+    override fun detach() {
+        super.detach()
+        unregisterReceivers()
+    }
+
+    private fun subscribeState() {
+        viewCompositeDisposable.add(
+            Single.timer(500, TimeUnit.MILLISECONDS)
+                .subscribe({
+                    if (stateRelay.value == STATE_EMPTY_SCREEN) {
+                        stateRelay.accept(STATE_LOADING)
+                    }
+                }, { Timber.e(it) })
+        )
+
+        viewCompositeDisposable.add(
+            stateRelay
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    when (it) {
+                        STATE_EMPTY_SCREEN -> getView()?.showEmptyScreen()
+                        STATE_EMPTY_NOTES_IN_DATABASE_LOADING -> getView()?.showLoadingCircle(true)
+                        STATE_LOADING -> getView()?.showLoadingHorizontal(true)
+                        STATE_UNRECEIVED_AND_EMPTY_DATA -> getView()?.showNoData()
+                    }
+                }
+        )
+    }
+
+    private fun initState() {
+        viewCompositeDisposable.add(
+            NotepadApp.injector.getNoteRepository().getAll()
+                .subscribe({
+                    if (it.isNullOrEmpty())
+                        stateRelay.accept(STATE_EMPTY_NOTES_IN_DATABASE_LOADING)
+                    else
+                        stateRelay.accept(STATE_LOADING)
+                }, { Timber.e(it) })
+        )
+    }
+
+    private fun registerReceivers() {
+        initNetworkReceiver()
+    }
+
+    private fun unregisterReceivers() {
+        getView()?.getContext()?.unregisterReceiver(mNetworkReceiver)
     }
 
     private fun initNetworkReceiver() {
         val intentFilter = IntentFilter("android.net.conn.CONNECTIVITY_CHANGE")
         mNetworkReceiver = NetworkReceiver()
-        view?.context!!.registerReceiver(mNetworkReceiver, intentFilter)
+        getView()?.getContext()?.registerReceiver(mNetworkReceiver, intentFilter)
         NetworkReceiver.networkReceiverListener = this
-    }
-
-    fun registerReceivers() {
-        initNetworkReceiver()
-    }
-
-    fun unregisterReceivers() {
-        view?.context?.unregisterReceiver(mNetworkReceiver)
     }
 
     override fun onNetworkConnectionChanged(isConnected: Boolean) {
 
         if (isConnected) {
-            mCurrentState.hideError()
             loadData()
         } else {
-            mCurrentState.hideProgress()
-            mCurrentState.showError(R.string.error_no_connection)
+            getView()?.showNoConnection()
         }
     }
 
@@ -67,20 +111,19 @@ class MainFragmentPresenter : BasePresenter<MainFragment>(),
         NotepadApp.injector.getNoteRepository().getAll()
             .observeOn(AndroidSchedulers.mainThread())
             .doOnTerminate {
-                mCurrentState.hideProgress()
+                getView()?.showLoadingCircle(false)
             }
             .doOnSubscribe {
-                mCurrentState.showProgress()
+                getView()?.showLoadingCircle(true)
             }
             .subscribe(::handleData, ::handleError)
     }
 
     private fun handleData(notes: List<Note>) {
-        mCurrentState.showError("Success")
+        Timber.i(notes.toString())
     }
 
     private fun handleError(throwable: Throwable) {
         Timber.e(throwable)
-        mCurrentState.showError(R.string.error_no_data)
     }
 }
