@@ -19,7 +19,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
         private const val STATE_EMPTY_NOTES_IN_DATABASE_LOADING = 1
         private const val STATE_LOADING = 2
         private const val STATE_UNRECEIVED_AND_EMPTY_DATA = 3
-        private const val STATE_EMPTY_PLACEHOLDER = 4
+        private const val STATE_LOADED = 4
         private const val STATE_EMPTY_SCREEN = 5
     }
 
@@ -56,10 +56,26 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
                     when (it) {
-                        STATE_EMPTY_SCREEN -> getView()?.showEmptyScreen()
-                        STATE_EMPTY_NOTES_IN_DATABASE_LOADING -> getView()?.showLoadingCircle(true)
-                        STATE_LOADING -> getView()?.showLoadingHorizontal(true)
-                        STATE_UNRECEIVED_AND_EMPTY_DATA -> getView()?.showNoData()
+                        STATE_EMPTY_SCREEN -> {
+                            Timber.i("State: STATE_EMPTY_SCREEN")
+                            getView()?.showEmptyScreen()
+                        }
+                        STATE_EMPTY_NOTES_IN_DATABASE_LOADING -> {
+                            Timber.i("State: STATE_EMPTY_NOTES_IN_DATABASE_LOADING")
+                            getView()?.showLoadingCircle(true)
+                        }
+                        STATE_LOADING -> {
+                            Timber.i("State: STATE_LOADING")
+                            getView()?.showLoadingHorizontal(true)
+                        }
+                        STATE_UNRECEIVED_AND_EMPTY_DATA -> {
+                            Timber.i("State: STATE_UNRECEIVED_AND_EMPTY_DATA")
+                            getView()?.showNoData()
+                        }
+                        STATE_LOADED -> {
+                            Timber.i("State: STATE_LOADED")
+                            getView()?.showNoData()
+                        }
                     }
                 }
         )
@@ -112,6 +128,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
             .observeOn(AndroidSchedulers.mainThread())
             .doOnTerminate {
                 getView()?.showLoadingCircle(false)
+                stateRelay.accept(STATE_LOADED)
             }
             .doOnSubscribe {
                 getView()?.showLoadingCircle(true)
