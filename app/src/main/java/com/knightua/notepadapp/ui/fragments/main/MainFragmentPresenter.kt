@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.IntentFilter
 import com.jakewharton.rxrelay2.BehaviorRelay
 import com.knightua.basemodule.abstracts.presenter.BasePresenter
+import com.knightua.notepadapp.R
 import com.knightua.notepadapp.di.application.NotepadApp
 import com.knightua.notepadapp.receivers.NetworkReceiver
 import com.knightua.notepadapp.room.entity.Note
@@ -16,14 +17,21 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     NetworkReceiver.NetworkReceiverListener {
 
     companion object {
-        private const val STATE_EMPTY_NOTES_IN_DATABASE_LOADING = 1
-        private const val STATE_LOADING = 2
-        private const val STATE_UNRECEIVED_AND_EMPTY_DATA = 3
-        private const val STATE_LOADED = 4
-        private const val STATE_EMPTY_SCREEN = 5
+        const val STATE_EMPTY_SCREEN = 0
+
+        const val STATE_NO_CONNECTION = 1
+        const val STATE_NO_DATA = 2
+
+        const val STATE_LOADING = 3
+        const val STATE_DATA_RECEIVED = 4
+
+        const val DATABASE_STATE_EMPTY = 5
+        const val DATABASE_STATE_WITH_DATA = 6
     }
 
     private val stateRelay = BehaviorRelay.createDefault(STATE_EMPTY_SCREEN)
+    private val databaseStateRelay = BehaviorRelay.createDefault(DATABASE_STATE_EMPTY)
+
     private lateinit var mNetworkReceiver: NetworkReceiver
 
     init {
@@ -55,26 +63,47 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
             stateRelay
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
+                    getView()?.showEmptyScreen()
                     when (it) {
                         STATE_EMPTY_SCREEN -> {
                             Timber.i("State: STATE_EMPTY_SCREEN")
                             getView()?.showEmptyScreen()
                         }
-                        STATE_EMPTY_NOTES_IN_DATABASE_LOADING -> {
-                            Timber.i("State: STATE_EMPTY_NOTES_IN_DATABASE_LOADING")
-                            getView()?.showLoadingCircle(true)
-                        }
                         STATE_LOADING -> {
                             Timber.i("State: STATE_LOADING")
-                            getView()?.showLoadingHorizontal(true)
+
+                            when (databaseStateRelay.value) {
+                                DATABASE_STATE_EMPTY -> {
+                                    getView()?.showEmptyScreen()
+                                    getView()?.showLoadingCircle(true)
+                                }
+                                DATABASE_STATE_WITH_DATA -> {
+                                    getView()?.showData()
+                                    getView()?.showLoadingHorizontal(true)
+                                }
+                            }
+
                         }
-                        STATE_UNRECEIVED_AND_EMPTY_DATA -> {
-                            Timber.i("State: STATE_UNRECEIVED_AND_EMPTY_DATA")
-                            getView()?.showNoData()
+                        STATE_DATA_RECEIVED -> {
+                            Timber.i("State: STATE_DATA_RECEIVED")
+                            getView()?.showEmptyScreen()
+                            getView()?.showData()
                         }
-                        STATE_LOADED -> {
-                            Timber.i("State: STATE_LOADED")
-                            getView()?.showNoData()
+                        STATE_NO_CONNECTION -> {
+                            Timber.i("State: STATE_NO_CONNECTION")
+
+                            when (databaseStateRelay.value) {
+                                DATABASE_STATE_EMPTY -> getView()?.showTextError(R.string.error_no_connection)
+                                DATABASE_STATE_WITH_DATA -> getView()?.showSnackbarError(R.string.error_no_connection)
+                            }
+                        }
+                        STATE_NO_DATA -> {
+                            Timber.i("State: STATE_NO_DATA")
+
+                            databaseStateRelay.value?.let { databaseState ->
+                                if (databaseState == DATABASE_STATE_EMPTY)
+                                    getView()?.showTextError(R.string.error_no_data)
+                            }
                         }
                     }
                 }
@@ -83,12 +112,11 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
 
     private fun initState() {
         viewCompositeDisposable.add(
-            NotepadApp.injector.getNoteRepository().getAll()
+            NotepadApp.injector.getNoteRepository().getAllFromDatabase()
                 .subscribe({
-                    if (it.isNullOrEmpty())
-                        stateRelay.accept(STATE_EMPTY_NOTES_IN_DATABASE_LOADING)
-                    else
-                        stateRelay.accept(STATE_LOADING)
+                    if (!it.isNullOrEmpty())
+                        databaseStateRelay.accept(DATABASE_STATE_WITH_DATA)
+                    stateRelay.accept(STATE_LOADING)
                 }, { Timber.e(it) })
         )
     }
@@ -113,7 +141,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
         if (isConnected) {
             loadData()
         } else {
-            getView()?.showNoConnection()
+            stateRelay.accept(STATE_NO_CONNECTION)
         }
     }
 
@@ -122,25 +150,28 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
             .insertInDatabase(Note("Title", "Description", System.currentTimeMillis()))
     }
 
+    fun clearData() {
+        NotepadApp.injector.getNoteRepository()
+            .clearDatabase()
+    }
+
     @SuppressLint("CheckResult")
     fun loadData() {
-        NotepadApp.injector.getNoteRepository().getAll()
+        NotepadApp.injector.getNoteRepository().getAllFromApi()
             .observeOn(AndroidSchedulers.mainThread())
-            .doOnTerminate {
-                getView()?.showLoadingCircle(false)
-                stateRelay.accept(STATE_LOADED)
-            }
             .doOnSubscribe {
-                getView()?.showLoadingCircle(true)
+                stateRelay.accept(STATE_LOADING)
             }
             .subscribe(::handleData, ::handleError)
     }
 
     private fun handleData(notes: List<Note>) {
         Timber.i(notes.toString())
+        stateRelay.accept(STATE_DATA_RECEIVED)
     }
 
     private fun handleError(throwable: Throwable) {
         Timber.e(throwable)
+        stateRelay.accept(STATE_NO_DATA)
     }
 }
