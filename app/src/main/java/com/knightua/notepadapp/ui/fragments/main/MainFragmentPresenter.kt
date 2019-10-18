@@ -13,10 +13,8 @@ import com.knightua.notepadapp.adapters.NoteRvAdapter
 import com.knightua.notepadapp.di.application.NotepadApp
 import com.knightua.notepadapp.receivers.NetworkReceiver
 import com.knightua.notepadapp.room.entity.Note
-import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import timber.log.Timber
-import java.util.concurrent.TimeUnit
 
 class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     NetworkReceiver.NetworkReceiverListener {
@@ -72,12 +70,14 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
 
     private fun subscribeState() {
         viewCompositeDisposable.add(
-            Single.timer(500, TimeUnit.MILLISECONDS)
-                .subscribe({
-                    if (stateRelay.value == STATE_EMPTY_SCREEN) {
-                        stateRelay.accept(STATE_LOADING)
+            databaseStateRelay
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    when (it) {
+                        DATABASE_STATE_WITH_DATA -> Timber.i("DatabaseState: DATABASE_STATE_WITH_DATA")
+                        DATABASE_STATE_EMPTY -> Timber.i("DatabaseState: DATABASE_STATE_EMPTY")
                     }
-                }, { Timber.e(it) })
+                }
         )
 
         viewCompositeDisposable.add(
@@ -85,6 +85,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
                     getView()?.showEmptyScreen()
+
                     when (it) {
                         STATE_EMPTY_SCREEN -> {
                             Timber.i("State: STATE_EMPTY_SCREEN")
@@ -95,7 +96,6 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
 
                             when (databaseStateRelay.value) {
                                 DATABASE_STATE_EMPTY -> {
-                                    getView()?.showEmptyScreen()
                                     getView()?.showLoadingCircle(true)
                                 }
                                 DATABASE_STATE_WITH_DATA -> {
@@ -107,15 +107,19 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                         }
                         STATE_DATA_RECEIVED -> {
                             Timber.i("State: STATE_DATA_RECEIVED")
-                            getView()?.showEmptyScreen()
                             getView()?.showData()
                         }
                         STATE_NO_CONNECTION -> {
                             Timber.i("State: STATE_NO_CONNECTION")
 
                             when (databaseStateRelay.value) {
-                                DATABASE_STATE_EMPTY -> getView()?.showTextError(R.string.error_no_connection)
-                                DATABASE_STATE_WITH_DATA -> getView()?.showSnackbarError(R.string.error_no_connection)
+                                DATABASE_STATE_EMPTY -> {
+                                    getView()?.showTextError(R.string.error_no_connection)
+                                }
+                                DATABASE_STATE_WITH_DATA -> {
+                                    getView()?.showData()
+                                    getView()?.showSnackbarError(R.string.error_no_connection)
+                                }
                             }
                         }
                         STATE_NO_DATA -> {
@@ -137,7 +141,11 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                 .subscribe({
                     if (!it.isNullOrEmpty())
                         databaseStateRelay.accept(DATABASE_STATE_WITH_DATA)
-                    stateRelay.accept(STATE_LOADING)
+
+                    if (NetworkReceiver.isConnected(context()))
+                        stateRelay.accept(STATE_LOADING)
+                    else
+                        stateRelay.accept(STATE_NO_CONNECTION)
 
                     mAdapter.addAll(it)
                 }, { Timber.e(it) })

@@ -76,7 +76,6 @@ class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
     }
 
     override fun showData() {
-        Snackbar.make(mBinding.root, "Data received", Snackbar.LENGTH_LONG).show()
         showView(mBinding.recyclerViewNotes, true)
     }
 

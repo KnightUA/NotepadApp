@@ -19,6 +19,13 @@ class NetworkReceiver : BroadcastReceiver() {
 
     companion object {
         var networkReceiverListener: NetworkReceiverListener? = null
+        fun isConnected(context: Context?): Boolean {
+            context?.let {
+                val status: Int = NetworkUtil.getConnectivityStatus(it)
+                return status != NetworkUtil.TYPE_NOT_CONNECTED
+            }
+            return false
+        }
     }
 
     interface NetworkReceiverListener {
