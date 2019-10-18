@@ -22,8 +22,7 @@ class NoteRvAdapter() :
     private var mRecentlyDeletedItemPosition: Int? = null
     private var mView: View? = null
 
-    constructor(notesList: List<Note>, onItemClickListener: OnItemClickListener) : this() {
-        mNoteList = notesList as ArrayList<Note>
+    constructor(onItemClickListener: OnItemClickListener) : this() {
         mOnItemClickListener = onItemClickListener
     }
 

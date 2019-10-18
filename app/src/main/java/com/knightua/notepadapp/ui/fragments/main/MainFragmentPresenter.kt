@@ -3,10 +3,10 @@ package com.knightua.notepadapp.ui.fragments.main
 import SwipeToDeleteCallback
 import android.annotation.SuppressLint
 import android.content.IntentFilter
-import com.jakewharton.rxrelay2.BehaviorRelay
 import android.widget.Toast
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import com.jakewharton.rxrelay2.BehaviorRelay
 import com.knightua.basemodule.abstracts.presenter.BasePresenter
 import com.knightua.notepadapp.R
 import com.knightua.notepadapp.adapters.NoteRvAdapter
@@ -38,6 +38,21 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     private val databaseStateRelay = BehaviorRelay.createDefault(DATABASE_STATE_EMPTY)
 
     private lateinit var mNetworkReceiver: NetworkReceiver
+    private val mOnItemClickListener: NoteRvAdapter.OnItemClickListener by lazy {
+        return@lazy object : NoteRvAdapter.OnItemClickListener {
+            override fun onItemClick(item: Note) {
+                Toast.makeText(
+                    context(),
+                    String.format("Item %s clicked", item.title),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private val mAdapter: NoteRvAdapter by lazy {
+        return@lazy NoteRvAdapter(mOnItemClickListener)
+    }
 
     init {
         initState()
@@ -45,6 +60,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
 
     override fun attach(view: MainFragmentView) {
         super.attach(view)
+        initAdapter()
         registerReceivers()
         subscribeState()
     }
@@ -122,6 +138,8 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                     if (!it.isNullOrEmpty())
                         databaseStateRelay.accept(DATABASE_STATE_WITH_DATA)
                     stateRelay.accept(STATE_LOADING)
+
+                    mAdapter.addAll(it)
                 }, { Timber.e(it) })
         )
     }
@@ -141,14 +159,6 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
         NetworkReceiver.networkReceiverListener = this
     }
 
-    fun registerReceivers() {
-        initNetworkReceiver()
-    }
-
-    fun unregisterReceivers() {
-        view?.context?.unregisterReceiver(mNetworkReceiver)
-    }
-
     override fun onNetworkConnectionChanged(isConnected: Boolean) {
 
         if (isConnected) {
@@ -162,7 +172,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
         val defaultNote = Note("Title", "Description", System.currentTimeMillis())
         NotepadApp.injector.getNoteRepository()
             .insertInDatabase(defaultNote)
-        (view?.mBinding?.recyclerViewNotes?.adapter as NoteRvAdapter).add(defaultNote)
+        mAdapter.add(defaultNote)
     }
 
     fun clearData() {
@@ -183,6 +193,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     private fun handleData(notes: List<Note>) {
         Timber.i(notes.toString())
         stateRelay.accept(STATE_DATA_RECEIVED)
+        mAdapter.addAll(notes)
     }
 
     private fun handleError(throwable: Throwable) {
@@ -190,23 +201,23 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
         stateRelay.accept(STATE_NO_DATA)
     }
 
-    private fun initAdapter(notes: List<Note>) {
+    private fun initAdapter() {
         Timber.i("initAdapter")
 
-        view?.mBinding?.recyclerViewNotes?.adapter = NoteRvAdapter(notes, onItemNoteClickListener)
-
-        val swipeHandler = object : SwipeToDeleteCallback(view?.context!!) {
+        val swipeHandler = object : SwipeToDeleteCallback(context()!!) {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 NotepadApp.injector.getNoteRepository().deleteFromDatabase(
-                    (view?.mBinding?.recyclerViewNotes?.adapter as NoteRvAdapter).getItemAt(
+                    mAdapter.getItemAt(
                         viewHolder.adapterPosition
                     ).id
                 )
-                (view?.mBinding?.recyclerViewNotes?.adapter as NoteRvAdapter).deleteAt(viewHolder.adapterPosition)
+                mAdapter.deleteAt(viewHolder.adapterPosition)
             }
         }
 
         val itemTouchHelper = ItemTouchHelper(swipeHandler)
-        itemTouchHelper.attachToRecyclerView(view?.mBinding?.recyclerViewNotes)
+        itemTouchHelper.attachToRecyclerView(getView()?.getRecyclerView())
+
+        getView()?.getRecyclerView()?.adapter = mAdapter
     }
 }

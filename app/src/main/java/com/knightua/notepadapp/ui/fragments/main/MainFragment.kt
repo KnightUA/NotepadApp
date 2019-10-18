@@ -5,16 +5,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.knightua.basemodule.abstracts.view.BaseFragment
 import com.knightua.notepadapp.R
-import com.knightua.notepadapp.adapters.NoteRvAdapter
 import com.knightua.notepadapp.databinding.FragmentMainBinding
 import javax.inject.Inject
 
 class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
 
-    lateinit var mBinding: FragmentMainBinding
+    private lateinit var mBinding: FragmentMainBinding
 
     @Inject
     lateinit var presenter: MainFragmentPresenter
@@ -77,9 +77,11 @@ class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
 
     override fun showData() {
         Snackbar.make(mBinding.root, "Data received", Snackbar.LENGTH_LONG).show()
-        mBinding.recyclerViewNotes.adapter = NoteRvAdapter()
-        presenter.initState()
-        mBinding.floatingActionButtonAddNote.setOnClickListener(this)
+        showView(mBinding.recyclerViewNotes, true)
+    }
+
+    override fun getRecyclerView(): RecyclerView {
+        return mBinding.recyclerViewNotes
     }
 
     companion object {
