@@ -3,6 +3,7 @@ package com.knightua.notepadapp.ui.fragments.main
 import SwipeToDeleteCallback
 import android.annotation.SuppressLint
 import android.content.IntentFilter
+import com.jakewharton.rxrelay2.BehaviorRelay
 import android.widget.Toast
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -12,52 +13,135 @@ import com.knightua.notepadapp.adapters.NoteRvAdapter
 import com.knightua.notepadapp.di.application.NotepadApp
 import com.knightua.notepadapp.receivers.NetworkReceiver
 import com.knightua.notepadapp.room.entity.Note
-import com.knightua.notepadapp.states.main.BaseMainState
-import com.knightua.notepadapp.states.main.NormalMainState
-import com.knightua.notepadapp.states.main.UnloadedDataMainState
+import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import timber.log.Timber
+import java.util.concurrent.TimeUnit
 
-class MainFragmentPresenter : BasePresenter<MainFragment>(),
+class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     NetworkReceiver.NetworkReceiverListener {
 
-    private lateinit var mNetworkReceiver: NetworkReceiver
-    private lateinit var mCurrentState: BaseMainState
-    private val onItemNoteClickListener: NoteRvAdapter.OnItemClickListener =
-        object : NoteRvAdapter.OnItemClickListener {
-            override fun onItemClick(item: Note) {
-                Toast.makeText(
-                    view?.context,
-                    String.format("Clicked on %s", item.title),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
+    companion object {
+        const val STATE_EMPTY_SCREEN = 0
 
-    @SuppressLint("CheckResult")
-    fun initState() {
-        NotepadApp.injector.getNoteRepository().getAllFromDatabase()
-            .subscribe {
-                if (it.isNotEmpty()) {
-                    mCurrentState = NormalMainState(view!!)
-                    initAdapter(it)
-                } else {
-                    //TODO NOT Working at first time
-                    mCurrentState = UnloadedDataMainState(view!!)
+        const val STATE_NO_CONNECTION = 1
+        const val STATE_NO_DATA = 2
+
+        const val STATE_LOADING = 3
+        const val STATE_DATA_RECEIVED = 4
+
+        const val DATABASE_STATE_EMPTY = 5
+        const val DATABASE_STATE_WITH_DATA = 6
+    }
+
+    private val stateRelay = BehaviorRelay.createDefault(STATE_EMPTY_SCREEN)
+    private val databaseStateRelay = BehaviorRelay.createDefault(DATABASE_STATE_EMPTY)
+
+    private lateinit var mNetworkReceiver: NetworkReceiver
+
+    init {
+        initState()
+    }
+
+    override fun attach(view: MainFragmentView) {
+        super.attach(view)
+        registerReceivers()
+        subscribeState()
+    }
+
+    override fun detach() {
+        super.detach()
+        unregisterReceivers()
+    }
+
+    private fun subscribeState() {
+        viewCompositeDisposable.add(
+            Single.timer(500, TimeUnit.MILLISECONDS)
+                .subscribe({
+                    if (stateRelay.value == STATE_EMPTY_SCREEN) {
+                        stateRelay.accept(STATE_LOADING)
+                    }
+                }, { Timber.e(it) })
+        )
+
+        viewCompositeDisposable.add(
+            stateRelay
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    getView()?.showEmptyScreen()
+                    when (it) {
+                        STATE_EMPTY_SCREEN -> {
+                            Timber.i("State: STATE_EMPTY_SCREEN")
+                            getView()?.showEmptyScreen()
+                        }
+                        STATE_LOADING -> {
+                            Timber.i("State: STATE_LOADING")
+
+                            when (databaseStateRelay.value) {
+                                DATABASE_STATE_EMPTY -> {
+                                    getView()?.showEmptyScreen()
+                                    getView()?.showLoadingCircle(true)
+                                }
+                                DATABASE_STATE_WITH_DATA -> {
+                                    getView()?.showData()
+                                    getView()?.showLoadingHorizontal(true)
+                                }
+                            }
+
+                        }
+                        STATE_DATA_RECEIVED -> {
+                            Timber.i("State: STATE_DATA_RECEIVED")
+                            getView()?.showEmptyScreen()
+                            getView()?.showData()
+                        }
+                        STATE_NO_CONNECTION -> {
+                            Timber.i("State: STATE_NO_CONNECTION")
+
+                            when (databaseStateRelay.value) {
+                                DATABASE_STATE_EMPTY -> getView()?.showTextError(R.string.error_no_connection)
+                                DATABASE_STATE_WITH_DATA -> getView()?.showSnackbarError(R.string.error_no_connection)
+                            }
+                        }
+                        STATE_NO_DATA -> {
+                            Timber.i("State: STATE_NO_DATA")
+
+                            databaseStateRelay.value?.let { databaseState ->
+                                if (databaseState == DATABASE_STATE_EMPTY)
+                                    getView()?.showTextError(R.string.error_no_data)
+                            }
+                        }
+                    }
                 }
-                registerReceivers()
-            }
+        )
+    }
+
+    private fun initState() {
+        viewCompositeDisposable.add(
+            NotepadApp.injector.getNoteRepository().getAllFromDatabase()
+                .subscribe({
+                    if (!it.isNullOrEmpty())
+                        databaseStateRelay.accept(DATABASE_STATE_WITH_DATA)
+                    stateRelay.accept(STATE_LOADING)
+                }, { Timber.e(it) })
+        )
+    }
+
+    private fun registerReceivers() {
+        initNetworkReceiver()
+    }
+
+    private fun unregisterReceivers() {
+        getView()?.getContext()?.unregisterReceiver(mNetworkReceiver)
     }
 
     private fun initNetworkReceiver() {
         val intentFilter = IntentFilter("android.net.conn.CONNECTIVITY_CHANGE")
         mNetworkReceiver = NetworkReceiver()
-        view?.context!!.registerReceiver(mNetworkReceiver, intentFilter)
+        getView()?.getContext()?.registerReceiver(mNetworkReceiver, intentFilter)
         NetworkReceiver.networkReceiverListener = this
     }
 
     fun registerReceivers() {
-        Timber.i("registerReceivers")
         initNetworkReceiver()
     }
 
@@ -68,11 +152,9 @@ class MainFragmentPresenter : BasePresenter<MainFragment>(),
     override fun onNetworkConnectionChanged(isConnected: Boolean) {
 
         if (isConnected) {
-            mCurrentState.hideError()
             loadData()
         } else {
-            mCurrentState.hideProgress()
-            mCurrentState.showError(R.string.error_no_connection)
+            stateRelay.accept(STATE_NO_CONNECTION)
         }
     }
 
@@ -83,30 +165,29 @@ class MainFragmentPresenter : BasePresenter<MainFragment>(),
         (view?.mBinding?.recyclerViewNotes?.adapter as NoteRvAdapter).add(defaultNote)
     }
 
+    fun clearData() {
+        NotepadApp.injector.getNoteRepository()
+            .clearDatabase()
+    }
+
     @SuppressLint("CheckResult")
     fun loadData() {
         NotepadApp.injector.getNoteRepository().getAllFromApi()
             .observeOn(AndroidSchedulers.mainThread())
-            .doOnTerminate {
-                mCurrentState.hideProgress()
-            }
             .doOnSubscribe {
-                mCurrentState.showProgress()
+                stateRelay.accept(STATE_LOADING)
             }
             .subscribe(::handleData, ::handleError)
     }
 
     private fun handleData(notes: List<Note>) {
-        if (mCurrentState is UnloadedDataMainState)
-            initAdapter(notes)
-        else
-            (view?.mBinding?.recyclerViewNotes?.adapter as NoteRvAdapter).addAll(notes)
-        view?.mBinding?.recyclerViewNotes?.adapter?.notifyDataSetChanged()
+        Timber.i(notes.toString())
+        stateRelay.accept(STATE_DATA_RECEIVED)
     }
 
     private fun handleError(throwable: Throwable) {
         Timber.e(throwable)
-        mCurrentState.showError(R.string.error_no_data)
+        stateRelay.accept(STATE_NO_DATA)
     }
 
     private fun initAdapter(notes: List<Note>) {

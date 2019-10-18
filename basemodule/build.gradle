@@ -38,6 +38,14 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.core:core-ktx:1.1.0'
 
+    // Timber, see more information on https://github.com/JakeWharton/timber
+    implementation 'com.jakewharton.timber:timber:4.7.1'
+    implementation 'org.apache.commons:commons-lang3:3.6'
+
+    // RxJava2
+    implementation "io.reactivex.rxjava2:rxjava:$RXJAVA_VERSION"
+    implementation "io.reactivex.rxjava2:rxandroid:$RXANDROID_VERSION"
+
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test:runner:1.2.0'
