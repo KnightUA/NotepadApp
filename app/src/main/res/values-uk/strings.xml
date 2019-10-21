@@ -5,4 +5,5 @@
     <string name="error_no_data">Відсутні дані для завантаження</string>
     <string name="snack_bar_text">1 примітка видалена</string>
     <string name="snack_bar_undo">Відмінити</string>
+    <string name="text_save">Зберегти</string>
 </resources>

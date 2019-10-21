@@ -3,7 +3,6 @@ package com.knightua.notepadapp.ui.fragments.main
 import SwipeToDeleteCallback
 import android.annotation.SuppressLint
 import android.content.IntentFilter
-import android.widget.Toast
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.jakewharton.rxrelay2.BehaviorRelay
@@ -39,11 +38,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     private val mOnItemClickListener: NoteRvAdapter.OnItemClickListener by lazy {
         return@lazy object : NoteRvAdapter.OnItemClickListener {
             override fun onItemClick(item: Note) {
-                Toast.makeText(
-                    context(),
-                    String.format("Item %s clicked", item.title),
-                    Toast.LENGTH_LONG
-                ).show()
+                getView()?.openDetailNote(item)
             }
         }
     }

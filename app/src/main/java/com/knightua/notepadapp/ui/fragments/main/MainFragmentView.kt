@@ -3,6 +3,7 @@ package com.knightua.notepadapp.ui.fragments.main
 import androidx.annotation.StringRes
 import androidx.recyclerview.widget.RecyclerView
 import com.knightua.basemodule.abstracts.view.BaseView
+import com.knightua.notepadapp.room.entity.Note
 
 interface MainFragmentView : BaseView {
     fun showEmptyScreen()
@@ -11,6 +12,8 @@ interface MainFragmentView : BaseView {
     fun showLoadingHorizontal(isShown: Boolean)
     fun showLoadingCircle(isShown: Boolean)
     fun showData()
+
+    fun openDetailNote(note: Note)
 
     fun getRecyclerView(): RecyclerView
 }

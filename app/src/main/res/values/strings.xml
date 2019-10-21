@@ -6,4 +6,7 @@
 
     <string name="error_no_connection">No connection to Internet</string>
     <string name="error_no_data">No data for loading</string>
+
+    <string name="text_save">Save</string>
+    <string name="text_saved">Сохранено</string>
 </resources>

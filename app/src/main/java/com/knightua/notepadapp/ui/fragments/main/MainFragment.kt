@@ -5,11 +5,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.knightua.basemodule.abstracts.view.BaseFragment
 import com.knightua.notepadapp.R
 import com.knightua.notepadapp.databinding.FragmentMainBinding
+import com.knightua.notepadapp.room.entity.Note
+import com.knightua.notepadapp.ui.fragments.note.NoteFragment
 import javax.inject.Inject
 
 class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
@@ -83,10 +86,12 @@ class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
         return mBinding.recyclerViewNotes
     }
 
-    companion object {
-
-        @JvmStatic
-        fun newInstance() = MainFragment()
-
+    override fun openDetailNote(note: Note) {
+        val bundle = Bundle()
+        bundle.putParcelable(NoteFragment.BUNDLE_NOTE, note)
+        findNavController().navigate(
+            R.id.action_open_detail_note,
+            bundle
+        )
     }
 }

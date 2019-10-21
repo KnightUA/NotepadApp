@@ -5,4 +5,5 @@
     <string name="error_no_data">Отсутствуют данные для загрузки</string>
     <string name="snack_bar_text">1 заметка удалена</string>
     <string name="snack_bar_undo">Отменить</string>
+    <string name="text_save">Сохранить</string>
 </resources>
