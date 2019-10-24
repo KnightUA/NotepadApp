@@ -24,6 +24,7 @@ class NoteFragment : BaseFragment(), NoteFragmentView, View.OnClickListener {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        setHasOptionsMenu(true)
         mBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_note, container, false)
         return mBinding.root
     }
@@ -50,7 +51,7 @@ class NoteFragment : BaseFragment(), NoteFragmentView, View.OnClickListener {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item?.itemId) {
+        when (item.itemId) {
             R.id.menu_item_action_save -> {
                 presenter.saveNote()
                 findNavController().popBackStack()

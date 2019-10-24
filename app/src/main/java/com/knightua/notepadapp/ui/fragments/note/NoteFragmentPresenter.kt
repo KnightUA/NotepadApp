@@ -9,10 +9,20 @@ class NoteFragmentPresenter : BasePresenter<NoteFragmentView>() {
     private lateinit var mNote: Note
 
     fun saveNote() {
-        mNote.title = getView()?.getTitle()
-        mNote.description = getView()?.getDescription()
-        mNote.dateOfCreation = System.currentTimeMillis()
-        NotepadApp.injector.getNoteRepository().updateInDatabase(mNote)
+
+        if(isNoteChanged()) {
+            mNote.title = getView()?.getTitle()
+            mNote.description = getView()?.getDescription()
+            mNote.dateOfCreation = System.currentTimeMillis()
+            NotepadApp.injector.getNoteRepository().updateInDatabase(mNote)
+        }
+    }
+
+    private fun isNoteChanged() : Boolean {
+        val newTitle = getView()?.getTitle()
+        val newDescription = getView()?.getDescription()
+
+        return !mNote.title?.equals(newTitle)!! || !mNote.description.equals(newDescription)!!
     }
 
     fun showNote(note: Note) {
