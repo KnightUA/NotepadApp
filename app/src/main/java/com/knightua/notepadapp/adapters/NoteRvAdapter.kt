@@ -5,8 +5,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.snackbar.Snackbar
-import com.knightua.notepadapp.R
 import com.knightua.notepadapp.databinding.ItemNoteBinding
 import com.knightua.notepadapp.room.entity.Note
 import java.lang.ref.WeakReference
@@ -50,12 +48,40 @@ class NoteRvAdapter() :
         return mNoteList.get(position)
     }
 
+    fun update(note: Note) {
+        for (i in mNoteList.indices) {
+            if (mNoteList.get(i).id == note.id) {
+                mNoteList[i] = note
+                notifyItemChanged(i)
+            }
+        }
+    }
+
+    fun updateAll(notes: List<Note>) {
+        for (note in notes) {
+            update(note)
+        }
+    }
+
     fun deleteAt(position: Int) {
         mRecentlyDeletedItem = mNoteList.get(position)
         mRecentlyDeletedItemPosition = position
         mNoteList.removeAt(position)
         notifyItemRemoved(position)
-        showUndoSnackbar()
+    }
+
+    fun delete(note: Note) {
+        for (i in mNoteList.indices)
+            if (mNoteList[i] == note) {
+                mNoteList.removeAt(i)
+                notifyItemRemoved(i)
+            }
+
+    }
+
+    fun deleteAll(notes: List<Note>) {
+        mNoteList.removeAll(notes)
+        notifyDataSetChanged()
     }
 
     fun add(note: Note) {
@@ -68,17 +94,18 @@ class NoteRvAdapter() :
         notifyDataSetChanged()
     }
 
-    private fun showUndoSnackbar() {
-        val snackbar = Snackbar.make(
-            mView!!
-            , R.string.snack_bar_text,
-            Snackbar.LENGTH_LONG
-        )
-        snackbar.setAction(R.string.snack_bar_undo, { v -> undoDelete() })
-        snackbar.show()
+    fun clearAndAddAll(notes: List<Note>) {
+        mNoteList.clear()
+        mNoteList.addAll(notes)
+        notifyDataSetChanged()
     }
 
-    private fun undoDelete() {
+    fun clearAll() {
+        mNoteList.clear()
+        notifyDataSetChanged()
+    }
+
+    fun undoDelete() {
         mNoteList.add(
             mRecentlyDeletedItemPosition!!,
             mRecentlyDeletedItem!!
