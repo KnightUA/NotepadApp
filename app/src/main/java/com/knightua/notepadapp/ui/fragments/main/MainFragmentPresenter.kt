@@ -30,9 +30,6 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
         const val STATE_LOADING_DATABASE_WITH_DATA = 5
 
         const val STATE_DATA_RECEIVED = 6
-
-        const val DATABASE_STATE_EMPTY = 7
-        const val DATABASE_STATE_WITH_DATA = 8
     }
 
     private val stateRelay = BehaviorRelay.createDefault(STATE_EMPTY_SCREEN)
@@ -192,7 +189,6 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
         val defaultNote = Note("Title", "Description", System.currentTimeMillis())
         NotepadApp.injector.getNoteRepository()
             .insertInDatabase(defaultNote)
-        mAdapter.add(defaultNote)
     }
 
     fun clearData() {
@@ -210,7 +206,6 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     private fun handleData(notes: List<Note>) {
         Timber.i(notes.toString())
         stateRelay.accept(STATE_DATA_RECEIVED)
-        mAdapter.addAll(notes)
     }
 
     private fun handleError(throwable: Throwable) {
@@ -226,9 +221,8 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                 NotepadApp.injector.getNoteRepository().deleteFromDatabase(
                     mAdapter.getItemAt(
                         viewHolder.adapterPosition
-                    ).id
+                    )
                 )
-                mAdapter.deleteAt(viewHolder.adapterPosition)
                 getView()?.showUndoSnackbar(mAdapter::undoDelete)
             }
         }

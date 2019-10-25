@@ -73,15 +73,16 @@ class NoteRvAdapter() :
     fun delete(note: Note) {
         for (i in mNoteList.indices)
             if (mNoteList[i] == note) {
-                mNoteList.removeAt(i)
-                notifyItemRemoved(i)
+                deleteAt(i)
+                break
             }
 
     }
 
     fun deleteAll(notes: List<Note>) {
-        mNoteList.removeAll(notes)
-        notifyDataSetChanged()
+        for(note in notes) {
+            delete(note)
+        }
     }
 
     fun add(note: Note) {

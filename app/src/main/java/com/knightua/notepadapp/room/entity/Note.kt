@@ -15,6 +15,10 @@ data class Note(
     @PrimaryKey(autoGenerate = true)
     var id: Long = 0
 
+    constructor(id:Long, title: String?, description: String?, dateOfCreation: Long?) : this(title, description, dateOfCreation) {
+        this.id = id
+    }
+
     constructor(parcel: Parcel) : this(
         parcel.readString(),
         parcel.readString(),
