@@ -11,6 +11,7 @@ import com.knightua.notepadapp.R
 import com.knightua.notepadapp.adapters.NoteRvAdapter
 import com.knightua.notepadapp.di.application.NotepadApp
 import com.knightua.notepadapp.receivers.NetworkReceiver
+import com.knightua.notepadapp.reposotories.NoteRepository
 import com.knightua.notepadapp.room.entity.Note
 import io.reactivex.android.schedulers.AndroidSchedulers
 import timber.log.Timber
@@ -21,18 +22,20 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     companion object {
         const val STATE_EMPTY_SCREEN = 0
 
-        const val STATE_NO_CONNECTION = 1
-        const val STATE_NO_DATA = 2
+        const val STATE_NO_CONNECTION_DATABASE_EMPTY = 1
+        const val STATE_NO_CONNECTION_DATABASE_WITH_DATA = 2
+        const val STATE_NO_DATA = 3
 
-        const val STATE_LOADING = 3
-        const val STATE_DATA_RECEIVED = 4
+        const val STATE_LOADING_DATABASE_EMPTY = 4
+        const val STATE_LOADING_DATABASE_WITH_DATA = 5
 
-        const val DATABASE_STATE_EMPTY = 5
-        const val DATABASE_STATE_WITH_DATA = 6
+        const val STATE_DATA_RECEIVED = 6
+
+        const val DATABASE_STATE_EMPTY = 7
+        const val DATABASE_STATE_WITH_DATA = 8
     }
 
     private val stateRelay = BehaviorRelay.createDefault(STATE_EMPTY_SCREEN)
-    private val databaseStateRelay = BehaviorRelay.createDefault(DATABASE_STATE_EMPTY)
 
     private lateinit var mNetworkReceiver: NetworkReceiver
     private val mOnItemClickListener: NoteRvAdapter.OnItemClickListener by lazy {
@@ -65,17 +68,6 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
 
     private fun subscribeState() {
         viewCompositeDisposable.add(
-            databaseStateRelay
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {
-                    when (it) {
-                        DATABASE_STATE_WITH_DATA -> Timber.i("DatabaseState: DATABASE_STATE_WITH_DATA")
-                        DATABASE_STATE_EMPTY -> Timber.i("DatabaseState: DATABASE_STATE_EMPTY")
-                    }
-                }
-        )
-
-        viewCompositeDisposable.add(
             stateRelay
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
@@ -86,47 +78,58 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                             Timber.i("State: STATE_EMPTY_SCREEN")
                             getView()?.showEmptyScreen()
                         }
-                        STATE_LOADING -> {
-                            Timber.i("State: STATE_LOADING")
+                        STATE_LOADING_DATABASE_EMPTY -> {
+                            Timber.i("State: STATE_LOADING_DATABASE_EMPTY")
+                            getView()?.showLoadingCircle(true)
 
-                            when (databaseStateRelay.value) {
-                                DATABASE_STATE_EMPTY -> {
-                                    getView()?.showLoadingCircle(true)
-                                }
-                                DATABASE_STATE_WITH_DATA -> {
-                                    getView()?.showData()
-                                    getView()?.showLoadingHorizontal(true)
-                                }
-                            }
-
+                        }
+                        STATE_LOADING_DATABASE_WITH_DATA -> {
+                            Timber.i("State: STATE_LOADING_DATABASE_WITH_DATA")
+                            getView()?.showData()
+                            getView()?.showLoadingHorizontal(true)
                         }
                         STATE_DATA_RECEIVED -> {
                             Timber.i("State: STATE_DATA_RECEIVED")
                             getView()?.showData()
                         }
-                        STATE_NO_CONNECTION -> {
-                            Timber.i("State: STATE_NO_CONNECTION")
-
-                            when (databaseStateRelay.value) {
-                                DATABASE_STATE_EMPTY -> {
-                                    getView()?.showTextError(R.string.error_no_connection)
-                                }
-                                DATABASE_STATE_WITH_DATA -> {
-                                    getView()?.showData()
-                                    getView()?.showSnackbarError(R.string.error_no_connection)
-                                }
-                            }
+                        STATE_NO_CONNECTION_DATABASE_EMPTY -> {
+                            Timber.i("State: STATE_NO_CONNECTION_DATABASE_EMPTY")
+                            getView()?.showTextError(R.string.error_no_connection)
+                        }
+                        STATE_NO_CONNECTION_DATABASE_WITH_DATA -> {
+                            Timber.i("State: STATE_NO_CONNECTION_DATABASE_WITH_DATA")
+                            getView()?.showData()
+                            getView()?.showSnackbarError(R.string.error_no_connection)
                         }
                         STATE_NO_DATA -> {
                             Timber.i("State: STATE_NO_DATA")
 
-                            databaseStateRelay.value?.let { databaseState ->
-                                if (databaseState == DATABASE_STATE_EMPTY)
-                                    getView()?.showTextError(R.string.error_no_data)
-                            }
+                            getView()?.showTextError(R.string.error_no_data)
                         }
                     }
                 }
+        )
+        viewCompositeDisposable.add(
+            NotepadApp.injector.getNoteRepository().getObserverForDatabase().subscribe { databaseState ->
+                when (databaseState.first) {
+                    NoteRepository.DATA_UPDATED -> {
+                        Timber.i("Database State: DATA_UPDATED")
+                        mAdapter.updateAll(notes = databaseState.second)
+                    }
+                    NoteRepository.DATA_INSERTED -> {
+                        Timber.i("Database State: DATA_INSERTED")
+                        mAdapter.addAll(notes = databaseState.second)
+                    }
+                    NoteRepository.DATA_DELETED -> {
+                        Timber.i("Database State: DATA_DELETED")
+                        mAdapter.deleteAll(notes = databaseState.second)
+                    }
+                    NoteRepository.DATA_CLEARED -> {
+                        Timber.i("Database State: DATA_CLEARED")
+                        mAdapter.clearAll()
+                    }
+                }
+            }
         )
     }
 
@@ -134,13 +137,17 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
         viewCompositeDisposable.add(
             NotepadApp.injector.getNoteRepository().getAllFromDatabase()
                 .subscribe({
-                    if (!it.isNullOrEmpty())
-                        databaseStateRelay.accept(DATABASE_STATE_WITH_DATA)
-
-                    if (NetworkReceiver.isConnected(context()))
-                        stateRelay.accept(STATE_LOADING)
-                    else
-                        stateRelay.accept(STATE_NO_CONNECTION)
+                    if (!it.isNullOrEmpty()) {
+                        if (NetworkReceiver.isConnected(context()))
+                            stateRelay.accept(STATE_LOADING_DATABASE_WITH_DATA)
+                        else
+                            stateRelay.accept(STATE_NO_CONNECTION_DATABASE_WITH_DATA)
+                    } else {
+                        if (NetworkReceiver.isConnected(context()))
+                            stateRelay.accept(STATE_LOADING_DATABASE_EMPTY)
+                        else
+                            stateRelay.accept(STATE_NO_CONNECTION_DATABASE_EMPTY)
+                    }
 
                     mAdapter.addAll(it)
                 }, { Timber.e(it) })
@@ -164,10 +171,20 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
 
     override fun onNetworkConnectionChanged(isConnected: Boolean) {
 
-        if (isConnected) {
-            loadData()
+        if (mAdapter.itemCount > 0) {
+            if (isConnected) {
+                stateRelay.accept(STATE_LOADING_DATABASE_WITH_DATA)
+                loadData()
+            } else {
+                stateRelay.accept(STATE_NO_CONNECTION_DATABASE_WITH_DATA)
+            }
         } else {
-            stateRelay.accept(STATE_NO_CONNECTION)
+            if (isConnected) {
+                stateRelay.accept(STATE_LOADING_DATABASE_EMPTY)
+                loadData()
+            } else {
+                stateRelay.accept(STATE_NO_CONNECTION_DATABASE_EMPTY)
+            }
         }
     }
 
@@ -187,9 +204,6 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     fun loadData() {
         NotepadApp.injector.getNoteRepository().getAllFromApi()
             .observeOn(AndroidSchedulers.mainThread())
-            .doOnSubscribe {
-                stateRelay.accept(STATE_LOADING)
-            }
             .subscribe(::handleData, ::handleError)
     }
 
@@ -215,6 +229,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                     ).id
                 )
                 mAdapter.deleteAt(viewHolder.adapterPosition)
+                getView()?.showUndoSnackbar(mAdapter::undoDelete)
             }
         }
 

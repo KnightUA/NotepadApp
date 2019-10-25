@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
@@ -80,6 +81,24 @@ class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
 
     override fun showData() {
         showView(mBinding.recyclerViewNotes, true)
+    }
+
+    override fun showToast(text: String) {
+        Toast.makeText(
+            context,
+            text,
+            Toast.LENGTH_LONG
+        ).show()
+    }
+
+    override fun showUndoSnackbar(action: () -> Unit) {
+        val snackbar = Snackbar.make(
+            mBinding.root
+            , R.string.snack_bar_text,
+            Snackbar.LENGTH_LONG
+        )
+        snackbar.setAction(R.string.snack_bar_undo, { v -> action() })
+        snackbar.show()
     }
 
     override fun getRecyclerView(): RecyclerView {
