@@ -16,7 +16,7 @@ class RoomModule {
 
     private var notepadAppDatabase: NotepadAppDatabase =
         Room.databaseBuilder(
-            NotepadApp.applicationContext,
+            NotepadApp.appContext,
             NotepadAppDatabase::class.java,
             "notepad-db"
         ).build()

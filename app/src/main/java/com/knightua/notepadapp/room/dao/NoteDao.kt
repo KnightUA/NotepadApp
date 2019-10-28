@@ -13,6 +13,9 @@ interface NoteDao {
     @Query("SELECT * FROM note WHERE id = :id")
     fun getById(id: Long): Single<Note>
 
+    @Query("SELECT COUNT(id) FROM note")
+    fun getCount(): Single<Int>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertAll(notes: List<Note>)
 

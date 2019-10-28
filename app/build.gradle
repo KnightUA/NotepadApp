@@ -34,6 +34,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    dataBinding {
+        enabled = true
+    }
 }
 
 dependencies {
@@ -55,6 +59,9 @@ dependencies {
     // RxJava2
     implementation "io.reactivex.rxjava2:rxjava:$RXJAVA_VERSION"
     implementation "io.reactivex.rxjava2:rxandroid:$RXANDROID_VERSION"
+
+    // RxRelay
+    implementation 'com.jakewharton.rxrelay2:rxrelay:2.1.1'
 
     // Navigation Component Java
     implementation "androidx.navigation:navigation-fragment:$nav_version"
