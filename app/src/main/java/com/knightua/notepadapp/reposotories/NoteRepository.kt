@@ -5,6 +5,7 @@ import com.jakewharton.rxrelay2.BehaviorRelay
 import com.knightua.notepadapp.network.WebServer
 import com.knightua.notepadapp.room.dao.NoteDao
 import com.knightua.notepadapp.room.entity.Note
+import io.reactivex.Flowable
 import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -26,17 +27,15 @@ class NoteRepository(private val noteDao: NoteDao, private val webServer: WebSer
 
     fun getAll(): Observable<List<Note>> {
         return Observable.concatArray(
-            getAllFromDatabase(),
             getAllFromApi()
         )
     }
 
-    fun getAllFromDatabase(): Observable<List<Note>> {
+    fun getAllFromDatabase(): Flowable<List<Note>> {
         return noteDao.getAll()
             .filter {
                 it.isNotEmpty()
             }
-            .toObservable()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .doOnNext {
