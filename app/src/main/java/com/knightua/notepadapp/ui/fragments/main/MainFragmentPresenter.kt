@@ -33,6 +33,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     }
 
     private val stateRelay = BehaviorRelay.createDefault(STATE_EMPTY_SCREEN)
+    private var mIsDataReceived = false
 
     private lateinit var mNetworkReceiver: NetworkReceiver
     private val mOnItemClickListener: NoteRvAdapter.OnItemClickListener by lazy {
@@ -87,6 +88,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                         }
                         STATE_DATA_RECEIVED -> {
                             Timber.i("State: STATE_DATA_RECEIVED")
+                            mIsDataReceived = true
                             getView()?.showData()
                         }
                         STATE_NO_CONNECTION_DATABASE_EMPTY -> {
@@ -115,7 +117,13 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                     }
                     NoteRepository.DATA_INSERTED -> {
                         Timber.i("Database State: DATA_INSERTED")
-                        mAdapter.addAll(notes = databaseState.second)
+
+                        viewCompositeDisposable.add(
+                            NotepadApp.injector.getNoteRepository().getAllFromDatabase()
+                                .subscribe {
+                                    mAdapter.clearAndAddAll(notes = it)
+                                }
+                        )
                     }
                     NoteRepository.DATA_DELETED -> {
                         Timber.i("Database State: DATA_DELETED")
