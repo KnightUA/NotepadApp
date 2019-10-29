@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.snackbar.BaseTransientBottomBar
 import com.google.android.material.snackbar.Snackbar
 import com.knightua.basemodule.abstracts.view.BaseFragment
 import com.knightua.notepadapp.R
@@ -15,6 +16,7 @@ import com.knightua.notepadapp.databinding.FragmentMainBinding
 import com.knightua.notepadapp.room.entity.Note
 import com.knightua.notepadapp.ui.fragments.note.NoteFragment
 import javax.inject.Inject
+import javax.security.auth.callback.Callback
 
 class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
 
@@ -91,13 +93,15 @@ class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
         ).show()
     }
 
-    override fun showUndoSnackbar(action: () -> Unit) {
+    override fun showUndoSnackbar(action: () -> Unit, dismissCallback : BaseTransientBottomBar.BaseCallback<Snackbar>) {
         val snackbar = Snackbar.make(
             mBinding.root
             , R.string.snack_bar_text,
             Snackbar.LENGTH_LONG
         )
         snackbar.setAction(R.string.snack_bar_undo, { v -> action() })
+        snackbar.addCallback(dismissCallback)
+
         snackbar.show()
     }
 

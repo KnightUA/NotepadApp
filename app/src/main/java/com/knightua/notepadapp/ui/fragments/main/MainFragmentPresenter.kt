@@ -5,6 +5,8 @@ import android.annotation.SuppressLint
 import android.content.IntentFilter
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.snackbar.BaseTransientBottomBar
+import com.google.android.material.snackbar.Snackbar
 import com.jakewharton.rxrelay2.BehaviorRelay
 import com.knightua.basemodule.abstracts.presenter.BasePresenter
 import com.knightua.notepadapp.R
@@ -88,6 +90,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                         }
                         STATE_UPDATING -> {
                             Timber.i("State: STATE_UPDATING")
+
                             getView()?.showData()
                         }
                         STATE_NO_CONNECTION -> {
@@ -129,18 +132,18 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                     dataRelay.accept(newPair)
                 }, { Timber.e(it) })
         )
+
         dataCompositeDisposable.add(
             dataRelay
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe {
-                    if (it.first > 1) {
-                        stateRelay.accept(STATE_UPDATING)
-                        mAdapter.clearAndAddAll(it.second)
-                    } else {
+                    if (it.first == 1) {
                         stateRelay.accept(STATE_LOADING)
-                        mAdapter.addAll(it.second)
                         loadData()
+                    } else {
+                        stateRelay.accept(STATE_UPDATING)
                     }
+                    mAdapter.clearAndAddAll(it.second)
                 }
         )
     }
@@ -197,12 +200,18 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
 
         val swipeHandler = object : SwipeToDeleteCallback(context()!!) {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                mAdapter.addToUndo(viewHolder.adapterPosition)
                 NotepadApp.injector.getNoteRepository().deleteFromDatabase(
                     mAdapter.getItemAt(
                         viewHolder.adapterPosition
                     )
                 )
-                getView()?.showUndoSnackbar(mAdapter::undoDelete)
+                getView()?.showUndoSnackbar(mAdapter::undoDelete, object : BaseTransientBottomBar.BaseCallback<Snackbar>() {
+                    override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                        super.onDismissed(transientBottomBar, event)
+                        mAdapter.clearUndo()
+                    }
+                })
             }
         }
 

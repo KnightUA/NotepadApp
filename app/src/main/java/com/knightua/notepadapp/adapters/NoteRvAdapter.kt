@@ -9,6 +9,7 @@ import com.knightua.notepadapp.databinding.ItemNoteBinding
 import com.knightua.notepadapp.room.entity.Note
 import java.lang.ref.WeakReference
 import java.util.*
+import kotlin.collections.ArrayList
 
 
 class NoteRvAdapter() :
@@ -16,8 +17,7 @@ class NoteRvAdapter() :
 
     private var mNoteList: ArrayList<Note> = ArrayList()
     private var mOnItemClickListener: OnItemClickListener? = null
-    private var mRecentlyDeletedItem: Note? = null
-    private var mRecentlyDeletedItemPosition: Int? = null
+    private var mRecentlyDeletedItems: ArrayList<Pair<Int, Note>> = ArrayList()
     private var mView: View? = null
 
     constructor(onItemClickListener: OnItemClickListener) : this() {
@@ -63,9 +63,16 @@ class NoteRvAdapter() :
         }
     }
 
+    fun addToUndo(position: Int) {
+        mRecentlyDeletedItems.add(Pair(position, mNoteList.get(position)))
+    }
+
+    fun clearUndo() {
+        mRecentlyDeletedItems.clear()
+    }
+
     fun deleteAt(position: Int) {
-        mRecentlyDeletedItem = mNoteList.get(position)
-        mRecentlyDeletedItemPosition = position
+        mRecentlyDeletedItems.add(Pair(position, mNoteList.get(position)))
         mNoteList.removeAt(position)
         notifyItemRemoved(position)
     }
@@ -80,7 +87,7 @@ class NoteRvAdapter() :
     }
 
     fun deleteAll(notes: List<Note>) {
-        for(note in notes) {
+        for (note in notes) {
             delete(note)
         }
     }
@@ -107,11 +114,10 @@ class NoteRvAdapter() :
     }
 
     fun undoDelete() {
-        mNoteList.add(
-            mRecentlyDeletedItemPosition!!,
-            mRecentlyDeletedItem!!
-        )
-        notifyItemInserted(mRecentlyDeletedItemPosition!!)
+        for (recentlyDeletedItem in mRecentlyDeletedItems) {
+            mNoteList.add(recentlyDeletedItem.first, recentlyDeletedItem.second)
+            notifyItemInserted(recentlyDeletedItem.first)
+        }
     }
 
     class NoteViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

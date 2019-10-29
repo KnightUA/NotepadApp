@@ -33,9 +33,6 @@ class NoteRepository(private val noteDao: NoteDao, private val webServer: WebSer
 
     fun getAllFromDatabase(): Flowable<List<Note>> {
         return noteDao.getAll()
-            .filter {
-                it.isNotEmpty()
-            }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .doOnNext {
