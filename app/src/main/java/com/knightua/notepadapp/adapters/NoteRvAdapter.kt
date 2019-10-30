@@ -72,7 +72,7 @@ class NoteRvAdapter() :
         mRecentlyDeletedItems.clear()
     }
 
-    fun getRecentlyDeletedItems() : ArrayList<Pair<Int, Note>> {
+    fun getRecentlyDeletedItems(): ArrayList<Pair<Int, Note>> {
         return mRecentlyDeletedItems
     }
 
@@ -132,14 +132,39 @@ class NoteRvAdapter() :
         fun setNote(note: Note) {
             mBinding.textViewTitle.text = note.title
             mBinding.textViewDescription.text = note.description
-            mBinding.textViewDatetime.text =
-                android.text.format.DateFormat.format("dd-MM-yyyy", Date(note.dateOfCreation!!))
+            setDateOrTime(note.dateOfCreation)
         }
 
         fun bind(note: Note, onItemClickListener: OnItemClickListener) {
             itemView.setOnClickListener {
                 onItemClickListener.onItemClick(note)
             }
+        }
+
+        private fun setDateOrTime(timeInMillis: Long?) {
+            timeInMillis?.let {
+                if (isCurrentDay(timeInMillis)) {
+                    mBinding.textViewDatetime.text =
+                        android.text.format.DateFormat.format("hh:mm", timeInMillis)
+                } else {
+                    mBinding.textViewDatetime.text =
+                        android.text.format.DateFormat.format("dd-MM-yyyy", timeInMillis)
+                }
+            }
+        }
+
+        private fun isCurrentDay(timeInMillis: Long): Boolean {
+            val currentCalendar = Calendar.getInstance()
+            val compareCalendar = Calendar.getInstance()
+            compareCalendar.timeInMillis = timeInMillis
+
+            val currentYear = currentCalendar.get(Calendar.YEAR)
+            val compareYear = compareCalendar.get(Calendar.YEAR)
+
+            val currentDay = currentCalendar.get(Calendar.DAY_OF_YEAR)
+            val compareDay = compareCalendar.get(Calendar.DAY_OF_YEAR)
+
+            return (currentYear == compareYear && currentDay == compareDay)
         }
     }
 

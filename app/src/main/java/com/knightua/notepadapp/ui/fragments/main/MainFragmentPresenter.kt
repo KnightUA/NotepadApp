@@ -169,7 +169,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     }
 
     fun addDefaultNote() {
-        val defaultNote = Note(UUID.randomUUID().toString(),"Title", "Description", System.currentTimeMillis())
+        val defaultNote = Note(UUID.randomUUID().toString(),"New Note", "", System.currentTimeMillis())
         NotepadApp.injector.getNoteRepository()
             .insertInDatabase(defaultNote)
     }

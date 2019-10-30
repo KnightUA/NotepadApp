@@ -29,7 +29,9 @@ class WebServer {
         notes.add(Note(UUID.fromString("331aef7c-faf1-11e9-8f0b-362b9e155667").toString(),"Martin", "My name is Martin", 1356040800000))
         notes.add(Note(UUID.fromString("331af0d0-faf1-11e9-8f0b-362b9e155667").toString(),"Thor", "My name is Thor", 1302987600000))
 
-        notes.add(Note(UUID.randomUUID().toString(), "Random", "This is random note", Random().nextLong()))
+        val currentTime = System.currentTimeMillis().toInt()
+
+        notes.add(Note(UUID.randomUUID().toString(), "Random New Note", "This is random note", Random().nextInt(currentTime).toLong()))
 
         return notes.toList()
     }
