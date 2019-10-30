@@ -46,7 +46,6 @@ class NoteRepository(private val noteDao: NoteDao, private val webServer: WebSer
             .observeOn(AndroidSchedulers.mainThread())
             .doOnNext {
                 Timber.d("Dispatching ${it.size} notes from Api...")
-                insertAllInDatabase(it)
             }
     }
 

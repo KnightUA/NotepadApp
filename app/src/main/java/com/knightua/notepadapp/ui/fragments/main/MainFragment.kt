@@ -75,6 +75,7 @@ class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
 
     override fun showTextError(stringRes: Int) {
         mBinding.textViewError.text = getString(stringRes)
+        showView(mBinding.textViewError, true)
     }
 
     override fun showLoadingHorizontal(isShown: Boolean) {

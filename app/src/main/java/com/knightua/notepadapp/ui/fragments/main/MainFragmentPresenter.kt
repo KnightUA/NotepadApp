@@ -91,7 +91,6 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
                         }
                         STATE_UPDATING -> {
                             Timber.i("State: STATE_UPDATING")
-
                             getView()?.showData()
                         }
                         STATE_NO_CONNECTION -> {
@@ -166,10 +165,15 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
 
     override fun onNetworkConnectionChanged(isConnected: Boolean) {
         isInternetRelay.accept(isConnected)
+        if (dataRelay.value?.first == 1) {
+            stateRelay.accept(STATE_LOADING)
+            loadData()
+        }
     }
 
     fun addDefaultNote() {
-        val defaultNote = Note(UUID.randomUUID().toString(),"New Note", "", System.currentTimeMillis())
+        val defaultNote =
+            Note(UUID.randomUUID().toString(), "New Note", "", System.currentTimeMillis())
         NotepadApp.injector.getNoteRepository()
             .insertInDatabase(defaultNote)
     }
@@ -181,14 +185,19 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
 
     @SuppressLint("CheckResult")
     fun loadData() {
-        NotepadApp.injector.getNoteRepository().getAllFromApi()
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(::handleData, ::handleError)
+        if (isInternetRelay.value!!) {
+            NotepadApp.injector.getNoteRepository().getAllFromApi()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(::handleData, ::handleError)
+        }
     }
 
     private fun handleData(notes: List<Note>) {
         Timber.i(notes.toString())
-        dataRelay.accept(Pair(dataRelay.value?.first?.plus(1)!!, notes))
+        if (isInternetRelay.value!!) {
+            NotepadApp.injector.getNoteRepository().insertAllInDatabase(notes)
+            dataRelay.accept(Pair(dataRelay.value?.first?.plus(1)!!, notes))
+        }
     }
 
     private fun handleError(throwable: Throwable) {
@@ -204,16 +213,19 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
 
                 mAdapter.addToUndo(viewHolder.adapterPosition)
 
-                getView()?.showUndoSnackbar(mAdapter::undoDelete, object : BaseTransientBottomBar.BaseCallback<Snackbar>() {
-                    override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
-                        super.onDismissed(transientBottomBar, event)
-                        for(recentlyDeletedItem in mAdapter.getRecentlyDeletedItems()) {
-                            NotepadApp.injector.getNoteRepository().deleteFromDatabase(recentlyDeletedItem.second.uuid)
-                        }
+                getView()?.showUndoSnackbar(
+                    mAdapter::undoDelete,
+                    object : BaseTransientBottomBar.BaseCallback<Snackbar>() {
+                        override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+                            super.onDismissed(transientBottomBar, event)
+                            for (recentlyDeletedItem in mAdapter.getRecentlyDeletedItems()) {
+                                NotepadApp.injector.getNoteRepository()
+                                    .deleteFromDatabase(recentlyDeletedItem.second.uuid)
+                            }
 
-                        mAdapter.clearUndo()
-                    }
-                })
+                            mAdapter.clearUndo()
+                        }
+                    })
             }
         }
 
