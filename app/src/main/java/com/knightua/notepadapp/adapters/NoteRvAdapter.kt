@@ -50,7 +50,7 @@ class NoteRvAdapter() :
 
     fun update(note: Note) {
         for (i in mNoteList.indices) {
-            if (mNoteList.get(i).id == note.id) {
+            if (mNoteList.get(i).uuid.equals(note.uuid)) {
                 mNoteList[i] = note
                 notifyItemChanged(i)
             }
@@ -65,14 +65,18 @@ class NoteRvAdapter() :
 
     fun addToUndo(position: Int) {
         mRecentlyDeletedItems.add(Pair(position, mNoteList.get(position)))
+        deleteAt(position)
     }
 
     fun clearUndo() {
         mRecentlyDeletedItems.clear()
     }
 
+    fun getRecentlyDeletedItems() : ArrayList<Pair<Int, Note>> {
+        return mRecentlyDeletedItems
+    }
+
     fun deleteAt(position: Int) {
-        mRecentlyDeletedItems.add(Pair(position, mNoteList.get(position)))
         mNoteList.removeAt(position)
         notifyItemRemoved(position)
     }
@@ -118,6 +122,7 @@ class NoteRvAdapter() :
             mNoteList.add(recentlyDeletedItem.first, recentlyDeletedItem.second)
             notifyItemInserted(recentlyDeletedItem.first)
         }
+        clearUndo()
     }
 
     class NoteViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

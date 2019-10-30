@@ -25,6 +25,11 @@ class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
     @Inject
     lateinit var presenter: MainFragmentPresenter
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        DaggerMainFragmentComponent.create().inject(this)
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -54,7 +59,6 @@ class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
     }
 
     private fun init() {
-        DaggerMainFragmentComponent.create().inject(this)
         presenter.attach(this)
         mBinding.floatingActionButtonAddNote.setOnClickListener(this)
     }

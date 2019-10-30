@@ -50,8 +50,8 @@ class NoteRepository(private val noteDao: NoteDao, private val webServer: WebSer
             }
     }
 
-    fun getByIdFromDatabase(id: Long): Observable<Note> {
-        return noteDao.getById(id)
+    fun getByIdFromDatabase(uuid: String): Observable<Note> {
+        return noteDao.getById(uuid)
             .toObservable()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
@@ -138,14 +138,14 @@ class NoteRepository(private val noteDao: NoteDao, private val webServer: WebSer
     }
 
     @SuppressLint("CheckResult")
-    fun deleteFromDatabase(id: Long) {
-        Single.fromCallable { noteDao.deleteById(id) }
+    fun deleteFromDatabase(uuid: String) {
+        Single.fromCallable { noteDao.deleteById(uuid) }
             .subscribeOn(Schedulers.io())
             .observeOn(Schedulers.io())
             .subscribe(
                 {
                     databaseStateRelay.accept(Pair(DATA_DELETED, listOf()))
-                    Timber.d("Delete note by ${id} id from DataBase")
+                    Timber.d("Delete note by ${uuid} id from DataBase")
                 },
                 { Timber.e(it.toString()) }
             )

@@ -1,6 +1,8 @@
 package com.knightua.notepadapp.room.module
 
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.knightua.notepadapp.di.application.NotepadApp
 import com.knightua.notepadapp.network.WebServer
 import com.knightua.notepadapp.reposotories.NoteRepository
@@ -19,7 +21,8 @@ class RoomModule {
             NotepadApp.appContext,
             NotepadAppDatabase::class.java,
             "notepad-db"
-        ).build()
+        ).fallbackToDestructiveMigration()
+            .build()
 
     private var webServer = WebServer()
 

@@ -16,6 +16,7 @@ import com.knightua.notepadapp.receivers.NetworkReceiver
 import com.knightua.notepadapp.room.entity.Note
 import io.reactivex.android.schedulers.AndroidSchedulers
 import timber.log.Timber
+import java.util.*
 
 class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     NetworkReceiver.NetworkReceiverListener {
@@ -168,7 +169,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     }
 
     fun addDefaultNote() {
-        val defaultNote = Note("Title", "Description", System.currentTimeMillis())
+        val defaultNote = Note(UUID.randomUUID().toString(),"Title", "Description", System.currentTimeMillis())
         NotepadApp.injector.getNoteRepository()
             .insertInDatabase(defaultNote)
     }
@@ -200,15 +201,16 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
 
         val swipeHandler = object : SwipeToDeleteCallback(context()!!) {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+
                 mAdapter.addToUndo(viewHolder.adapterPosition)
-                NotepadApp.injector.getNoteRepository().deleteFromDatabase(
-                    mAdapter.getItemAt(
-                        viewHolder.adapterPosition
-                    )
-                )
+
                 getView()?.showUndoSnackbar(mAdapter::undoDelete, object : BaseTransientBottomBar.BaseCallback<Snackbar>() {
                     override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
                         super.onDismissed(transientBottomBar, event)
+                        for(recentlyDeletedItem in mAdapter.getRecentlyDeletedItems()) {
+                            NotepadApp.injector.getNoteRepository().deleteFromDatabase(recentlyDeletedItem.second.uuid)
+                        }
+
                         mAdapter.clearUndo()
                     }
                 })

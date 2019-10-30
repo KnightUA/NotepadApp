@@ -8,30 +8,24 @@ import androidx.room.PrimaryKey
 
 @Entity
 data class Note(
+    @PrimaryKey(autoGenerate = false) @ColumnInfo(name = "uuid") var uuid: String,
     @ColumnInfo(name = "title") var title: String?,
     @ColumnInfo(name = "description") var description: String?,
     @ColumnInfo(name = "date_of_creation") var dateOfCreation: Long?
 ) : Parcelable {
-    @PrimaryKey(autoGenerate = true)
-    var id: Long = 0
-
-    constructor(id:Long, title: String?, description: String?, dateOfCreation: Long?) : this(title, description, dateOfCreation) {
-        this.id = id
-    }
 
     constructor(parcel: Parcel) : this(
         parcel.readString(),
         parcel.readString(),
+        parcel.readString(),
         parcel.readValue(Long::class.java.classLoader) as? Long
-    ) {
-        id = parcel.readLong()
-    }
+    )
 
     override fun writeToParcel(p0: Parcel?, p1: Int) {
+        p0?.writeString(uuid)
         p0?.writeString(title)
         p0?.writeString(description)
         p0?.writeValue(dateOfCreation)
-        p0?.writeLong(id)
     }
 
     override fun describeContents(): Int {

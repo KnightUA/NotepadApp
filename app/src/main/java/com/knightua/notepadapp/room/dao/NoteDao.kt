@@ -11,10 +11,10 @@ interface NoteDao {
     @Query("SELECT * FROM note")
     fun getAll(): Flowable<List<Note>>
 
-    @Query("SELECT * FROM note WHERE id = :id")
-    fun getById(id: Long): Single<Note>
+    @Query("SELECT * FROM note WHERE uuid = :uuid")
+    fun getById(uuid: String): Single<Note>
 
-    @Query("SELECT COUNT(id) FROM note")
+    @Query("SELECT COUNT(uuid) FROM note")
     fun getCount(): Single<Int>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -32,8 +32,8 @@ interface NoteDao {
     @Delete
     fun delete(note: Note)
 
-    @Query("DELETE FROM note WHERE id = :id")
-    fun deleteById(id: Long)
+    @Query("DELETE FROM note WHERE uuid = :uuid")
+    fun deleteById(uuid: String)
 
     @Query("DELETE FROM note")
     fun clear()
