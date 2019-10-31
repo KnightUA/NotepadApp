@@ -63,6 +63,7 @@ dependencies {
     // RxJava2
     implementation "io.reactivex.rxjava2:rxjava:$RXJAVA_VERSION"
     implementation "io.reactivex.rxjava2:rxandroid:$RXANDROID_VERSION"
+    implementation "io.reactivex.rxjava2:rxkotlin:$RXKOTLIN_VERSION"
 
     // RxRelay
     implementation 'com.jakewharton.rxrelay2:rxrelay:2.1.1'

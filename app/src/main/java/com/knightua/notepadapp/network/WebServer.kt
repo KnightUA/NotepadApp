@@ -1,25 +1,33 @@
 package com.knightua.notepadapp.network
 
 import com.knightua.notepadapp.room.entity.Note
-import io.reactivex.Observable
+import io.reactivex.Single
 import java.util.*
 
 class WebServer {
 
-    fun getAllNotes(): Observable<List<Note>> {
-        return Observable.create { emitter ->
+    private var networkConnected = true
+
+    fun getAllNotes(): Single<List<Note>> {
+        return Single.create { emitter ->
             val notes = getRandomDataSituation()
 
             //Simulate getting data
-            Thread.sleep(5000L)
-
-            if (notes.isEmpty())
-                emitter.onError(Throwable("Data didn't receive from Api..."))
-            else
-                emitter.onNext(notes)
-
-            emitter.onComplete()
+            for (i in 1..10) {
+                if (emitter.isDisposed) {
+                    return@create
+                }
+                if (!networkConnected) {
+                    emitter.onError(Throwable("No internet connection"))
+                }
+                Thread.sleep(500L)
+            }
+            emitter.onSuccess(notes)
         }
+    }
+
+    fun networkConnected(connected: Boolean) {
+        networkConnected = connected
     }
 
     private fun getDefaultNotes(): List<Note> {

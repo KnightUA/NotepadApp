@@ -15,6 +15,7 @@ interface MainFragmentView : BaseView {
     fun showLoadingHorizontal(isShown: Boolean)
     fun showLoadingCircle(isShown: Boolean)
     fun showData()
+    fun setData(notes: List<Note>)
     fun showToast(text: String)
 
     fun openDetailNote(note: Note)

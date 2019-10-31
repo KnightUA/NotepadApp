@@ -46,4 +46,5 @@ ext {
     // RxJava2
     RXJAVA_VERSION = '2.1.13'
     RXANDROID_VERSION = '2.1.1'
+    RXKOTLIN_VERSION = '2.4.0'
 }

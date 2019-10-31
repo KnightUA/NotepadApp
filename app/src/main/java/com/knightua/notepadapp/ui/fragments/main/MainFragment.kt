@@ -16,7 +16,6 @@ import com.knightua.notepadapp.databinding.FragmentMainBinding
 import com.knightua.notepadapp.room.entity.Note
 import com.knightua.notepadapp.ui.fragments.note.NoteFragment
 import javax.inject.Inject
-import javax.security.auth.callback.Callback
 
 class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
 
@@ -90,6 +89,10 @@ class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
         showView(mBinding.recyclerViewNotes, true)
     }
 
+    override fun setData(notes: List<Note>) {
+        //set data to adapter
+    }
+
     override fun showToast(text: String) {
         Toast.makeText(
             context,
@@ -121,5 +124,10 @@ class MainFragment : BaseFragment(), MainFragmentView, View.OnClickListener {
             R.id.action_open_detail_note,
             bundle
         )
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        presenter.destroyPresenter()
     }
 }
