@@ -9,6 +9,7 @@ import com.knightua.notepadapp.databinding.ItemNoteBinding
 import com.knightua.notepadapp.room.entity.Note
 import java.lang.ref.WeakReference
 import java.util.*
+import kotlin.collections.ArrayList
 
 
 class NoteRvAdapter() :
@@ -16,8 +17,7 @@ class NoteRvAdapter() :
 
     private var mNoteList: ArrayList<Note> = ArrayList()
     private var mOnItemClickListener: OnItemClickListener? = null
-    private var mRecentlyDeletedItem: Note? = null
-    private var mRecentlyDeletedItemPosition: Int? = null
+    private var mRecentlyDeletedItems: ArrayList<Pair<Int, Note>> = ArrayList()
     private var mView: View? = null
 
     constructor(onItemClickListener: OnItemClickListener) : this() {
@@ -50,7 +50,7 @@ class NoteRvAdapter() :
 
     fun update(note: Note) {
         for (i in mNoteList.indices) {
-            if (mNoteList.get(i).id == note.id) {
+            if (mNoteList.get(i).uuid.equals(note.uuid)) {
                 mNoteList[i] = note
                 notifyItemChanged(i)
             }
@@ -63,9 +63,20 @@ class NoteRvAdapter() :
         }
     }
 
+    fun addToUndo(position: Int) {
+        mRecentlyDeletedItems.add(Pair(position, mNoteList.get(position)))
+        deleteAt(position)
+    }
+
+    fun clearUndo() {
+        mRecentlyDeletedItems.clear()
+    }
+
+    fun getRecentlyDeletedItems(): ArrayList<Pair<Int, Note>> {
+        return mRecentlyDeletedItems
+    }
+
     fun deleteAt(position: Int) {
-        mRecentlyDeletedItem = mNoteList.get(position)
-        mRecentlyDeletedItemPosition = position
         mNoteList.removeAt(position)
         notifyItemRemoved(position)
     }
@@ -80,7 +91,7 @@ class NoteRvAdapter() :
     }
 
     fun deleteAll(notes: List<Note>) {
-        for(note in notes) {
+        for (note in notes) {
             delete(note)
         }
     }
@@ -107,11 +118,11 @@ class NoteRvAdapter() :
     }
 
     fun undoDelete() {
-        mNoteList.add(
-            mRecentlyDeletedItemPosition!!,
-            mRecentlyDeletedItem!!
-        )
-        notifyItemInserted(mRecentlyDeletedItemPosition!!)
+        for (recentlyDeletedItem in mRecentlyDeletedItems) {
+            mNoteList.add(recentlyDeletedItem.first, recentlyDeletedItem.second)
+            notifyItemInserted(recentlyDeletedItem.first)
+        }
+        clearUndo()
     }
 
     class NoteViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -121,14 +132,39 @@ class NoteRvAdapter() :
         fun setNote(note: Note) {
             mBinding.textViewTitle.text = note.title
             mBinding.textViewDescription.text = note.description
-            mBinding.textViewDatetime.text =
-                android.text.format.DateFormat.format("dd-MM-yyyy", Date(note.dateOfCreation!!))
+            setDateOrTime(note.dateOfCreation)
         }
 
         fun bind(note: Note, onItemClickListener: OnItemClickListener) {
             itemView.setOnClickListener {
                 onItemClickListener.onItemClick(note)
             }
+        }
+
+        private fun setDateOrTime(timeInMillis: Long?) {
+            timeInMillis?.let {
+                if (isCurrentDay(timeInMillis)) {
+                    mBinding.textViewDatetime.text =
+                        android.text.format.DateFormat.format("hh:mm", timeInMillis)
+                } else {
+                    mBinding.textViewDatetime.text =
+                        android.text.format.DateFormat.format("dd-MM-yyyy", timeInMillis)
+                }
+            }
+        }
+
+        private fun isCurrentDay(timeInMillis: Long): Boolean {
+            val currentCalendar = Calendar.getInstance()
+            val compareCalendar = Calendar.getInstance()
+            compareCalendar.timeInMillis = timeInMillis
+
+            val currentYear = currentCalendar.get(Calendar.YEAR)
+            val compareYear = compareCalendar.get(Calendar.YEAR)
+
+            val currentDay = currentCalendar.get(Calendar.DAY_OF_YEAR)
+            val compareDay = compareCalendar.get(Calendar.DAY_OF_YEAR)
+
+            return (currentYear == compareYear && currentDay == compareDay)
         }
     }
 

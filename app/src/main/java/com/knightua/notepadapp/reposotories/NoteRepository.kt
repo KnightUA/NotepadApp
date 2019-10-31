@@ -5,6 +5,7 @@ import com.jakewharton.rxrelay2.BehaviorRelay
 import com.knightua.notepadapp.network.WebServer
 import com.knightua.notepadapp.room.dao.NoteDao
 import com.knightua.notepadapp.room.entity.Note
+import io.reactivex.Flowable
 import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -26,17 +27,12 @@ class NoteRepository(private val noteDao: NoteDao, private val webServer: WebSer
 
     fun getAll(): Observable<List<Note>> {
         return Observable.concatArray(
-            getAllFromDatabase(),
             getAllFromApi()
         )
     }
 
-    fun getAllFromDatabase(): Observable<List<Note>> {
+    fun getAllFromDatabase(): Flowable<List<Note>> {
         return noteDao.getAll()
-            .filter {
-                it.isNotEmpty()
-            }
-            .toObservable()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .doOnNext {
@@ -50,12 +46,11 @@ class NoteRepository(private val noteDao: NoteDao, private val webServer: WebSer
             .observeOn(AndroidSchedulers.mainThread())
             .doOnNext {
                 Timber.d("Dispatching ${it.size} notes from Api...")
-                insertAllInDatabase(it)
             }
     }
 
-    fun getByIdFromDatabase(id: Long): Observable<Note> {
-        return noteDao.getById(id)
+    fun getByIdFromDatabase(uuid: String): Observable<Note> {
+        return noteDao.getById(uuid)
             .toObservable()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
@@ -142,14 +137,14 @@ class NoteRepository(private val noteDao: NoteDao, private val webServer: WebSer
     }
 
     @SuppressLint("CheckResult")
-    fun deleteFromDatabase(id: Long) {
-        Single.fromCallable { noteDao.deleteById(id) }
+    fun deleteFromDatabase(uuid: String) {
+        Single.fromCallable { noteDao.deleteById(uuid) }
             .subscribeOn(Schedulers.io())
             .observeOn(Schedulers.io())
             .subscribe(
                 {
                     databaseStateRelay.accept(Pair(DATA_DELETED, listOf()))
-                    Timber.d("Delete note by ${id} id from DataBase")
+                    Timber.d("Delete note by ${uuid} id from DataBase")
                 },
                 { Timber.e(it.toString()) }
             )

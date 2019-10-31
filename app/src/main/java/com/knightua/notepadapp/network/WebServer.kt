@@ -25,9 +25,13 @@ class WebServer {
     private fun getDefaultNotes(): List<Note> {
         val notes: ArrayList<Note> = arrayListOf()
 
-        notes.add(Note("John", "My name is John", 10))
-        notes.add(Note("Martin", "My name is Martin", 100))
-        notes.add(Note("Thor", "My name is Thor", 1000))
+        notes.add(Note(UUID.fromString("331aecc0-faf1-11e9-8f0b-362b9e155667").toString(),"Stanislav", "My name is Stanislav", 876690000000))
+        notes.add(Note(UUID.fromString("331aef7c-faf1-11e9-8f0b-362b9e155667").toString(),"Martin", "My name is Martin", 1356040800000))
+        notes.add(Note(UUID.fromString("331af0d0-faf1-11e9-8f0b-362b9e155667").toString(),"Thor", "My name is Thor", 1302987600000))
+
+        val currentTime = System.currentTimeMillis().toInt()
+
+        notes.add(Note(UUID.randomUUID().toString(), "Random New Note", "This is random note", Random().nextInt(currentTime).toLong()))
 
         return notes.toList()
     }
