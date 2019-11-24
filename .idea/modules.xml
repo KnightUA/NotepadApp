@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/NotepadApp.iml" filepath="$PROJECT_DIR$/.idea/NotepadApp.iml" />
       <module fileurl="file://$PROJECT_DIR$/basemodule/NotepadApp-basemodule.iml" filepath="$PROJECT_DIR$/basemodule/NotepadApp-basemodule.iml" />
+      <module fileurl="file://$PROJECT_DIR$/StudioProjects-NotepadApp.iml" filepath="$PROJECT_DIR$/StudioProjects-NotepadApp.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/basemodule/basemodule.iml" filepath="$PROJECT_DIR$/basemodule/basemodule.iml" />
     </modules>

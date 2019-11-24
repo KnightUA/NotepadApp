@@ -25,26 +25,21 @@ class NoteRepository(private val noteDao: NoteDao, private val webServer: WebSer
     private val databaseStateRelay =
         BehaviorRelay.createDefault(Pair(DATA_EMPTY, emptyList<Note>()))
 
-    fun getAll(): Observable<List<Note>> {
-        return Observable.concatArray(
-            getAllFromApi()
-        )
+    fun networkConnected(connected: Boolean) {
+        webServer.networkConnected(connected)
     }
 
     fun getAllFromDatabase(): Flowable<List<Note>> {
         return noteDao.getAll()
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
             .doOnNext {
                 Timber.d("Dispatching ${it.size} notes from DataBase...")
             }
     }
 
-    fun getAllFromApi(): Observable<List<Note>> {
+    fun getAllFromApi(): Single<List<Note>> {
         return webServer.getAllNotes()
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .doOnNext {
+            .doOnSuccess {
+                noteDao.insertAll(it)
                 Timber.d("Dispatching ${it.size} notes from Api...")
             }
     }

@@ -1,7 +1,6 @@
 package com.knightua.notepadapp.ui.fragments.main
 
 import SwipeToDeleteCallback
-import android.annotation.SuppressLint
 import android.content.IntentFilter
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -15,6 +14,8 @@ import com.knightua.notepadapp.di.application.NotepadApp
 import com.knightua.notepadapp.receivers.NetworkReceiver
 import com.knightua.notepadapp.room.entity.Note
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.rxkotlin.addTo
+import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 import java.util.*
 
@@ -22,7 +23,7 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     NetworkReceiver.NetworkReceiverListener {
 
     companion object {
-        val EMPTY_DATA = Pair<Int, List<Note>>(0, emptyList())
+        //val EMPTY_DATA = Pair<Int, List<Note>>(0, emptyList())
 
         const val STATE_EMPTY_SCREEN = 0
 
@@ -31,11 +32,12 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
 
         const val STATE_NO_CONNECTION = 2
         const val STATE_NO_DATA = 4
+        const val STATE_DATA = 5
     }
 
     private val stateRelay = BehaviorRelay.createDefault(STATE_EMPTY_SCREEN)
-    private val dataRelay = BehaviorRelay.createDefault(EMPTY_DATA)
-    private val isInternetRelay = BehaviorRelay.createDefault(true)
+    private val dataRelay = BehaviorRelay.create<List<Note>>()
+    private var networkConnected = true
 
     private lateinit var mNetworkReceiver: NetworkReceiver
     private val mOnItemClickListener: NoteRvAdapter.OnItemClickListener by lazy {
@@ -62,90 +64,90 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     }
 
     override fun detach() {
-        super.detach()
         unregisterReceivers()
+        super.detach()
     }
 
     private fun subscribeState() {
-        viewCompositeDisposable.add(
-            stateRelay
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {
-                    getView()?.showEmptyScreen()
+        stateRelay
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe {
+                getView()?.showEmptyScreen()
 
-                    when (it) {
-                        STATE_EMPTY_SCREEN -> {
-                            Timber.i("State: STATE_EMPTY_SCREEN")
-                            getView()?.showEmptyScreen()
-                        }
-                        STATE_LOADING -> {
-                            Timber.i("State: STATE_LOADING")
-                            dataRelay.value?.second.let { notes ->
-                                if (notes.isNullOrEmpty()) {
-                                    getView()?.showLoadingCircle(true)
-                                } else {
-                                    getView()?.showData()
-                                    getView()?.showLoadingHorizontal(true)
-                                }
-                            }
-                        }
-                        STATE_UPDATING -> {
-                            Timber.i("State: STATE_UPDATING")
-                            getView()?.showData()
-                        }
-                        STATE_NO_CONNECTION -> {
-                            Timber.i("State: STATE_NO_CONNECTION")
-                            isInternetRelay.value?.let { isInternetConnection ->
-                                if (isInternetConnection) {
-                                    getView()?.showTextError(R.string.error_no_connection)
-                                } else {
-                                    getView()?.showData()
-                                    getView()?.showSnackbarError(R.string.error_no_connection)
-                                }
-                            }
-                        }
-                        STATE_NO_DATA -> {
-                            Timber.i("State: STATE_NO_DATA")
-                            getView()?.showTextError(R.string.error_no_data)
-                        }
+                when (it) {
+                    STATE_EMPTY_SCREEN -> {
+                        Timber.i("State: STATE_EMPTY_SCREEN")
+                        getView()?.showEmptyScreen()
+                    }
+                    STATE_LOADING -> {
+                        Timber.i("State: STATE_LOADING")
+                        getView()?.showLoadingCircle(true)
+                    }
+                    STATE_UPDATING -> {
+                        Timber.i("State: STATE_UPDATING")
+                        getView()?.showLoadingHorizontal(true)
+                        getView()?.showData()
+                    }
+                    STATE_DATA -> {
+                        getView()?.showData()
+                    }
+                    STATE_NO_CONNECTION -> {
+                        Timber.i("State: STATE_NO_CONNECTION")
+                        getView()?.showTextError(R.string.error_no_connection)
+                    }
+                    STATE_NO_DATA -> {
+                        Timber.i("State: STATE_NO_DATA")
+                        getView()?.showTextError(R.string.error_no_data)
                     }
                 }
-        )
-        viewCompositeDisposable.add(
-            isInternetRelay
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {
-                    when (it) {
-                        false -> {
-                            stateRelay.accept(STATE_NO_CONNECTION)
-                        }
-                    }
-                }
-        )
+            }.addTo(viewCompositeDisposable)
+
+        dataRelay
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe {
+                getView()?.setData(it)
+                //REMOVE
+                mAdapter.clearAndAddAll(it)
+            }.addTo(viewCompositeDisposable)
     }
 
     private fun initState() {
-        dataCompositeDisposable.add(
-            NotepadApp.injector.getNoteRepository().getAllFromDatabase()
-                .subscribe({
-                    val newPair = Pair<Int, List<Note>>(dataRelay.value?.first?.plus(1)!!, it)
-                    dataRelay.accept(newPair)
-                }, { Timber.e(it) })
-        )
-
-        dataCompositeDisposable.add(
-            dataRelay
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {
-                    if (it.first == 1) {
-                        stateRelay.accept(STATE_LOADING)
-                        loadData()
-                    } else {
-                        stateRelay.accept(STATE_UPDATING)
-                    }
-                    mAdapter.clearAndAddAll(it.second)
+        NotepadApp.injector.getNoteRepository()
+            .getAllFromDatabase().take(1)
+            .subscribeOn(Schedulers.io())
+            .doOnNext {
+                if (it.isEmpty()) {
+                    stateRelay.accept(STATE_LOADING)
+                } else {
+                    stateRelay.accept(STATE_UPDATING)
                 }
-        )
+                dataRelay.accept(it)
+            }
+            .flatMap {
+                NotepadApp.injector.getNoteRepository().getAllFromApi().toFlowable()
+                    .doOnError {
+                        if (dataRelay.hasValue() && dataRelay.value?.isEmpty() == true) {
+                            stateRelay.accept(STATE_NO_CONNECTION)
+                        } else {
+                            stateRelay.accept(STATE_DATA)
+                            getView()?.showSnackbarError(R.string.error_no_connection)
+                        }
+                    }
+            }
+            .flatMap {
+                NotepadApp.injector.getNoteRepository().getAllFromDatabase().skip(1)
+            }
+            .onExceptionResumeNext(NotepadApp.injector.getNoteRepository().getAllFromDatabase())
+            .subscribe({
+                dataRelay.accept(it)
+                if (it.isEmpty()) {
+                    stateRelay.accept(STATE_NO_DATA)
+                } else {
+                    stateRelay.accept(STATE_DATA)
+                }
+            }, {
+                Timber.i("sql exception")
+            }).addTo(dataCompositeDisposable)
     }
 
     private fun registerReceivers() {
@@ -164,9 +166,12 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
     }
 
     override fun onNetworkConnectionChanged(isConnected: Boolean) {
-        isInternetRelay.accept(isConnected)
-        if (dataRelay.value?.first == 1) {
-            stateRelay.accept(STATE_LOADING)
+        NotepadApp.injector.getNoteRepository().networkConnected(isConnected)
+        if (networkConnected == isConnected) {
+            return
+        }
+        networkConnected = isConnected
+        if (isConnected && dataRelay.hasValue() && dataRelay.value?.isEmpty() == true) {
             loadData()
         }
     }
@@ -178,32 +183,39 @@ class MainFragmentPresenter : BasePresenter<MainFragmentView>(),
             .insertInDatabase(defaultNote)
     }
 
-    fun clearData() {
-        NotepadApp.injector.getNoteRepository()
-            .clearDatabase()
+    private fun loadData() {
+        NotepadApp.injector.getNoteRepository().getAllFromApi()
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .doOnSubscribe {
+                if (dataRelay.value?.isEmpty() == true) {
+                    stateRelay.accept(STATE_LOADING)
+                } else {
+                    stateRelay.accept(STATE_UPDATING)
+                }
+            }
+            .subscribe({
+                Timber.i("Loaded from API")
+                if (it.isEmpty()) {
+                    stateRelay.accept(STATE_NO_DATA)
+                } else {
+                    stateRelay.accept(STATE_DATA)
+                }
+            }, {
+                Timber.i("Request not succeed")
+                if (dataRelay.value?.isEmpty() == true) {
+                    //если нет данных или они пусты, то показываем ошибку на весь экран
+                    stateRelay.accept(STATE_NO_CONNECTION)
+                } else {
+                    //не исползуем state, потому что мы не собираемся отображать snackbar каждый раз при подписке.
+                    //Если получится показать, показываем
+                    getView()?.showSnackbarError(R.string.error_no_connection)
+                    stateRelay.accept(STATE_DATA)
+                }
+            }).addTo(dataCompositeDisposable)
     }
 
-    @SuppressLint("CheckResult")
-    fun loadData() {
-        if (isInternetRelay.value!!) {
-            NotepadApp.injector.getNoteRepository().getAllFromApi()
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(::handleData, ::handleError)
-        }
-    }
-
-    private fun handleData(notes: List<Note>) {
-        Timber.i(notes.toString())
-        if (isInternetRelay.value!!) {
-            NotepadApp.injector.getNoteRepository().insertAllInDatabase(notes)
-            dataRelay.accept(Pair(dataRelay.value?.first?.plus(1)!!, notes))
-        }
-    }
-
-    private fun handleError(throwable: Throwable) {
-        Timber.e(throwable)
-        stateRelay.accept(STATE_NO_DATA)
-    }
+    //TODO move to view
 
     private fun initAdapter() {
         Timber.i("initAdapter")
